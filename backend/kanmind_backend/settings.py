@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles', 
     'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders',
     
     # Eigene Apps
@@ -142,4 +143,7 @@ REST_FRAMEWORK = {
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Custom User Model
+AUTH_USER_MODEL = 'core.CustomUser'
 
