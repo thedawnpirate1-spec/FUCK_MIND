@@ -1,9 +1,11 @@
 from rest_framework.views import APIView
+from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
-from .serializers import RegistrationSerializer, LoginSerializer, UserDetailSerializer
+from .models import Contact
+from .serializers import RegistrationSerializer, LoginSerializer, UserDetailSerializer, ContactSerializer
 
 
 class RegistrationView(APIView):
@@ -74,3 +76,22 @@ class UserProfileView(APIView):
     def get(self, request):
         serializer = UserDetailSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ContactListCreateView(generics.ListCreateAPIView):
+    """
+    GET: Liste aller Kontakte abrufen.
+    POST: Einen neuen Kontakt erstellen.
+    """
+    queryset = Contact.objects.all().order_by('name')
+    serializer_class = ContactSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class ContactDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET, PUT, PATCH, DELETE für einzelne Kontakte.
+    """
+    queryset = Contact.objects.all()
+    serializer_class = ContactSerializer
+    permission_classes = [IsAuthenticated]

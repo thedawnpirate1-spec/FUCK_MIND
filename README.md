@@ -31,30 +31,41 @@ Backend REST API für die KanMind Anwendung (gebaut mit Django und Django REST F
 - `POST /api/auth/register/` - Registrierung eines neuen Benutzers (liefert Auth Token zurück)
 - `POST /api/auth/login/` - Login per Benutzername oder E-Mail & Passwort
 - `POST /api/auth/logout/` - Logout (löscht Token, benötigt Header `Authorization: Token <key>`)
-- `GET /api/auth/user/` - Profil des angemeldeten Benutzers abrufen (geschützt, benötigt Header `Authorization: Token <key>`)
+- `GET /api/auth/user/` - Profil des angemeldeten Benutzers abrufen (geschützt)
+- `GET /api/contacts/` - Liste aller Kontakte abrufen (geschützt)
+- `POST /api/contacts/` - Neuen Kontakt erstellen (geschützt)
+- `GET /api/contacts/<id>/` - Einzelnen Kontakt abrufen (geschützt)
+- `PUT / PATCH /api/contacts/<id>/` - Kontakt aktualisieren (geschützt)
+- `DELETE /api/contacts/<id>/` - Kontakt löschen (geschützt)
 
 ## Bisherige Schritte
 
-### Tag 1: Projekt-Setup
+### : Projekt-Setup
 - Django Projekt initialisiert mit DRF und CORS Headers
 - Einstellungen für `.env` und `requirements.txt` aufgesetzt
 
-### Tag 2: Custom User Modell
+### : Custom User Modell
 - App `core` erstellt
 - `CustomUser` Modell angelegt mit `email` (unique) und `color` (Avatar-Farbe)
 - `AUTH_USER_MODEL` in `settings.py` konfiguriert und Admin angepasst
 - Migrationen erstellt und auf SQLite angewendet
 
-### Tag 3: User Registrierung
+### : User Registrierung
 - `RegistrationSerializer` mit Passwort-Abgleich und Validierung erstellt
 - `RegistrationView` unter `/api/auth/register/` integriert (gibt Token direkt zurück)
 
-### Tag 4: Login & Logout
+### : Login & Logout
 - `LoginSerializer` für Anmeldung via Username oder E-Mail implementiert
 - `LoginView` (`/api/auth/login/`) und `LogoutView` (`/api/auth/logout/`) gebaut
 - Unit- und Integrationstests in `core/tests.py` hinzugefügt
 
-### Tag 5: Protected Routes & Profil-Endpunkt
+### : Protected Routes & Profil-Endpunkt
 - `UserDetailSerializer` zur sauberen Formatierung der Benutzerdaten angelegt
 - `UserProfileView` (`GET /api/auth/user/`) mit `IsAuthenticated` Permission Guard erstellt
 - Integrationstests für gültige und ungültige/fehlende Tokens in `core/tests.py` ergänzt
+
+### : Contacts Endpunkte & Modell
+- `Contact` Modell (`name`, `email`, `phone`, `color`, `created_at`) in `core/models.py` erstellt
+- Migration `0002_contact` erstellt und angewendet
+- `ContactSerializer` sowie CRUD Endpunkte (`ContactListCreateView`, `ContactDetailView`) gebaut
+- Integrationstests für Kontakt-Erstellung, Liste, Update und Löschung in `core/tests.py` hinterlegt (19 Tests bestanden)

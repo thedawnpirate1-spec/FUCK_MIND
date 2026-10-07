@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from django.urls import reverse
 from django.contrib.auth import get_user_model
+from .models import Contact
 
 User = get_user_model()
 
@@ -185,3 +186,66 @@ class UserProfileApiTest(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION='Token invalidtoken12345')
         response = self.client.get(self.profile_url)
         self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+
+class ContactApiTest(APITestCase):
+
+    def setUp(self):
+        self.contacts_url = reverse('contact-list-create')
+        self.user = User.objects.create_user(
+            username='contacttestuser',
+            email='contacttestuser@example.com',
+            password='Password123!'
+        )
+        self.token = Token.objects.create(user=self.user)
+        self.contact = Contact.objects.create(
+            name='Jane Doe',
+            email='jane@example.com',
+            phone='+491512345678',
+            color='#FF7A00'
+        )
+        self.contact_detail_url = reverse('contact-detail', kwargs={'pk': self.contact.pk})
+
+    def test_get_contacts_list(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.get(self.contacts_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.data), 1)
+
+    def test_create_contact_success(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        data = {
+            "name": "Max Mustermann",
+            "email": "max@example.com",
+            "phone": "+491709876543",
+            "color": "#1FD7C1"
+        }
+        response = self.client.post(self.contacts_url, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['name'], 'Max Mustermann')
+        self.assertTrue(Contact.objects.filter(email='max@example.com').exists())
+
+    def test_get_contact_detail(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.get(self.contact_detail_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['name'], 'Jane Doe')
+
+    def test_update_contact(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        data = {
+            "name": "Jane Smith",
+            "email": "jane.smith@example.com",
+            "phone": "+491512345678",
+            "color": "#9327FF"
+        }
+        response = self.client.put(self.contact_detail_url, data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.contact.refresh_from_db()
+        self.assertEqual(self.contact.name, 'Jane Smith')
+
+    def test_delete_contact(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.delete(self.contact_detail_url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Contact.objects.filter(pk=self.contact.pk).exists())
