@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
-from .serializers import RegistrationSerializer, LoginSerializer
+from .serializers import RegistrationSerializer, LoginSerializer, UserDetailSerializer
 
 
 class RegistrationView(APIView):
@@ -63,3 +63,14 @@ class LogoutView(APIView):
         except Exception:
             pass
         return Response({'detail': 'Erfolgreich abgemeldet.'}, status=status.HTTP_200_OK)
+
+
+class UserProfileView(APIView):
+    """
+    Geschützter Endpunkt zum Abrufen der Daten des angemeldeten Benutzers.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserDetailSerializer(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)

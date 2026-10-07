@@ -31,6 +31,7 @@ Backend REST API für die KanMind Anwendung (gebaut mit Django und Django REST F
 - `POST /api/auth/register/` - Registrierung eines neuen Benutzers (liefert Auth Token zurück)
 - `POST /api/auth/login/` - Login per Benutzername oder E-Mail & Passwort
 - `POST /api/auth/logout/` - Logout (löscht Token, benötigt Header `Authorization: Token <key>`)
+- `GET /api/auth/user/` - Profil des angemeldeten Benutzers abrufen (geschützt, benötigt Header `Authorization: Token <key>`)
 
 ## Bisherige Schritte
 
@@ -52,3 +53,8 @@ Backend REST API für die KanMind Anwendung (gebaut mit Django und Django REST F
 - `LoginSerializer` für Anmeldung via Username oder E-Mail implementiert
 - `LoginView` (`/api/auth/login/`) und `LogoutView` (`/api/auth/logout/`) gebaut
 - Unit- und Integrationstests in `core/tests.py` hinzugefügt
+
+### Tag 5: Protected Routes & Profil-Endpunkt
+- `UserDetailSerializer` zur sauberen Formatierung der Benutzerdaten angelegt
+- `UserProfileView` (`GET /api/auth/user/`) mit `IsAuthenticated` Permission Guard erstellt
+- Integrationstests für gültige und ungültige/fehlende Tokens in `core/tests.py` ergänzt

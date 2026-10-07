@@ -153,3 +153,35 @@ class LogoutApiTest(APITestCase):
     def test_logout_unauthenticated(self):
         response = self.client.post(self.logout_url)
         self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+
+class UserProfileApiTest(APITestCase):
+
+    def setUp(self):
+        self.profile_url = reverse('user-profile')
+        self.user = User.objects.create_user(
+            username='profileuser',
+            email='profile@example.com',
+            password='Password123!',
+            first_name='Profile',
+            last_name='User',
+            color='#1FD7C1'
+        )
+        self.token = Token.objects.create(user=self.user)
+
+    def test_get_profile_success(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.get(self.profile_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['username'], 'profileuser')
+        self.assertEqual(response.data['email'], 'profile@example.com')
+        self.assertEqual(response.data['color'], '#1FD7C1')
+
+    def test_get_profile_unauthenticated(self):
+        response = self.client.get(self.profile_url)
+        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+    def test_get_profile_invalid_token(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token invalidtoken12345')
+        response = self.client.get(self.profile_url)
+        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])

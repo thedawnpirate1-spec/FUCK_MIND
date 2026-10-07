@@ -5,6 +5,14 @@ from django.contrib.auth.password_validation import validate_password
 User = get_user_model()
 
 
+class UserDetailSerializer(serializers.ModelSerializer):
+    user_id = serializers.IntegerField(source='id', read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['user_id', 'username', 'email', 'first_name', 'last_name', 'color']
+
+
 class RegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     repeated_password = serializers.CharField(write_only=True, required=True)
