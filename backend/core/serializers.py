@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.password_validation import validate_password
 
 User = get_user_model()
@@ -34,3 +34,34 @@ class RegistrationSerializer(serializers.ModelSerializer):
             color=validated_data.get('color', '#FF7A00')
         )
         return user
+
+
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField(required=False, allow_blank=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    password = serializers.CharField(write_only=True, required=True)
+
+    def validate(self, attrs):
+        username = attrs.get('username')
+        email = attrs.get('email')
+        password = attrs.get('password')
+
+        if not username and not email:
+            raise serializers.ValidationError("Bitte gib einen Benutzernamen oder eine E-Mail-Adresse an.")
+
+        if email and not username:
+            try:
+                user_obj = User.objects.get(email__iexact=email)
+                username = user_obj.username
+            except User.DoesNotExist:
+                raise serializers.ValidationError("Ungültige Anmeldedaten.")
+
+        user = authenticate(username=username, password=password)
+
+        if not user:
+            raise serializers.ValidationError("Ungültige Anmeldedaten.")
+        if not user.is_active:
+            raise serializers.ValidationError("Benutzerkonto ist deaktiviert.")
+
+        attrs['user'] = user
+        return attrs

@@ -1,6 +1,7 @@
 from django.test import TestCase
 from rest_framework.test import APITestCase
 from rest_framework import status
+from rest_framework.authtoken.models import Token
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 
@@ -79,3 +80,76 @@ class RegistrationApiTest(APITestCase):
         response = self.client.post(self.register_url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('username', response.data)
+
+
+class LoginApiTest(APITestCase):
+
+    def setUp(self):
+        self.login_url = reverse('login')
+        self.user = User.objects.create_user(
+            username='activeuser',
+            email='active@example.com',
+            password='SecretPassword123!',
+            first_name='Active',
+            last_name='User',
+            color='#FF5500'
+        )
+
+    def test_login_success_with_username(self):
+        data = {
+            "username": "activeuser",
+            "password": "SecretPassword123!"
+        }
+        response = self.client.post(self.login_url, data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('token', response.data)
+        self.assertEqual(response.data['username'], 'activeuser')
+        self.assertEqual(response.data['color'], '#FF5500')
+
+    def test_login_success_with_email(self):
+        data = {
+            "email": "active@example.com",
+            "password": "SecretPassword123!"
+        }
+        response = self.client.post(self.login_url, data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('token', response.data)
+        self.assertEqual(response.data['email'], 'active@example.com')
+
+    def test_login_invalid_password(self):
+        data = {
+            "username": "activeuser",
+            "password": "WrongPassword123!"
+        }
+        response = self.client.post(self.login_url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_login_nonexistent_user(self):
+        data = {
+            "username": "unknownuser",
+            "password": "SomePassword123!"
+        }
+        response = self.client.post(self.login_url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class LogoutApiTest(APITestCase):
+
+    def setUp(self):
+        self.logout_url = reverse('logout')
+        self.user = User.objects.create_user(
+            username='logoutuser',
+            email='logout@example.com',
+            password='Password123!'
+        )
+        self.token = Token.objects.create(user=self.user)
+
+    def test_logout_success(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.post(self.logout_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(Token.objects.filter(user=self.user).exists())
+
+    def test_logout_unauthenticated(self):
+        response = self.client.post(self.logout_url)
+        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])

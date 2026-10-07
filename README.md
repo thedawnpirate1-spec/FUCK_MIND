@@ -1,0 +1,54 @@
+# KanMind Backend
+
+Backend REST API für die KanMind Anwendung (gebaut mit Django und Django REST Framework).
+
+## Setup & Lokaler Start
+
+1. Virtuelle Umgebung aktivieren & Abhängigkeiten installieren:
+   ```bash
+   cd backend
+   .\venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+2. Datenbank-Migrationen ausführen:
+   ```bash
+   python manage.py migrate
+   ```
+
+3. Server starten:
+   ```bash
+   python manage.py runserver
+   ```
+
+4. Tests ausführen:
+   ```bash
+   python manage.py test
+   ```
+
+## Verfügbare API Endpunkte
+
+- `POST /api/auth/register/` - Registrierung eines neuen Benutzers (liefert Auth Token zurück)
+- `POST /api/auth/login/` - Login per Benutzername oder E-Mail & Passwort
+- `POST /api/auth/logout/` - Logout (löscht Token, benötigt Header `Authorization: Token <key>`)
+
+## Bisherige Schritte
+
+### Tag 1: Projekt-Setup
+- Django Projekt initialisiert mit DRF und CORS Headers
+- Einstellungen für `.env` und `requirements.txt` aufgesetzt
+
+### Tag 2: Custom User Modell
+- App `core` erstellt
+- `CustomUser` Modell angelegt mit `email` (unique) und `color` (Avatar-Farbe)
+- `AUTH_USER_MODEL` in `settings.py` konfiguriert und Admin angepasst
+- Migrationen erstellt und auf SQLite angewendet
+
+### Tag 3: User Registrierung
+- `RegistrationSerializer` mit Passwort-Abgleich und Validierung erstellt
+- `RegistrationView` unter `/api/auth/register/` integriert (gibt Token direkt zurück)
+
+### Tag 4: Login & Logout
+- `LoginSerializer` für Anmeldung via Username oder E-Mail implementiert
+- `LoginView` (`/api/auth/login/`) und `LogoutView` (`/api/auth/logout/`) gebaut
+- Unit- und Integrationstests in `core/tests.py` hinzugefügt
