@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from .models import Contact
+from .models import Contact, Task
 
 User = get_user_model()
 
@@ -249,3 +249,53 @@ class ContactApiTest(APITestCase):
         response = self.client.delete(self.contact_detail_url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Contact.objects.filter(pk=self.contact.pk).exists())
+
+
+class TaskApiTest(APITestCase):
+
+    def setUp(self):
+        self.tasks_url = reverse('task-list-create')
+        self.user = User.objects.create_user(
+            username='taskuser',
+            email='taskuser@example.com',
+            password='Password123!'
+        )
+        self.token = Token.objects.create(user=self.user)
+        self.contact = Contact.objects.create(
+            name='Assignee Contact',
+            email='assignee@example.com',
+            color='#FF7A00'
+        )
+
+    def test_create_task_success(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        data = {
+            "title": "Implement REST API",
+            "description": "Build Task creation endpoint for KanMind.",
+            "due_date": "2026-12-31",
+            "priority": "urgent",
+            "status": "in_progress",
+            "category": "Technical Task",
+            "assigned_to": [self.contact.id]
+        }
+        response = self.client.post(self.tasks_url, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['title'], 'Implement REST API')
+        self.assertEqual(response.data['priority'], 'urgent')
+        self.assertEqual(len(response.data['assigned_to_details']), 1)
+        self.assertEqual(response.data['assigned_to_details'][0]['name'], 'Assignee Contact')
+        self.assertTrue(Task.objects.filter(title='Implement REST API').exists())
+
+    def test_create_task_unauthenticated(self):
+        data = {
+            "title": "Unauthorized Task"
+        }
+        response = self.client.post(self.tasks_url, data)
+        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+    def test_list_tasks(self):
+        Task.objects.create(title="Existing Task 1", status="to_do")
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.get(self.tasks_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.data), 1)

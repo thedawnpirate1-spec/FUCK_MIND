@@ -25,3 +25,35 @@ class Contact(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.email})"
+
+
+class Task(models.Model):
+    """
+    Task-Modell für KanMind Kanban Board.
+    """
+    PRIORITY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('urgent', 'Urgent'),
+    ]
+
+    STATUS_CHOICES = [
+        ('to_do', 'To Do'),
+        ('in_progress', 'In Progress'),
+        ('await_feedback', 'Await Feedback'),
+        ('done', 'Done'),
+    ]
+
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, default='')
+    due_date = models.DateField(null=True, blank=True)
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='to_do')
+    category = models.CharField(max_length=100, blank=True, default='User Story')
+    assigned_to = models.ManyToManyField(Contact, blank=True, related_name='tasks')
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_tasks')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.title} [{self.status}]"

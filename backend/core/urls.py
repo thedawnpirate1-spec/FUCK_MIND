@@ -5,7 +5,8 @@ from .views import (
     LogoutView,
     UserProfileView,
     ContactListCreateView,
-    ContactDetailView
+    ContactDetailView,
+    TaskListCreateView
 )
 
 urlpatterns = [
@@ -15,4 +16,5 @@ urlpatterns = [
     path('auth/user/', UserProfileView.as_view(), name='user-profile'),
     path('contacts/', ContactListCreateView.as_view(), name='contact-list-create'),
     path('contacts/<int:pk>/', ContactDetailView.as_view(), name='contact-detail'),
+    path('tasks/', TaskListCreateView.as_view(), name='task-list-create'),
 ]

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.password_validation import validate_password
-from .models import Contact
+from .models import Contact, Task
 
 User = get_user_model()
 
@@ -19,6 +19,20 @@ class ContactSerializer(serializers.ModelSerializer):
         model = Contact
         fields = ['id', 'name', 'email', 'phone', 'color', 'created_at']
         read_only_fields = ['id', 'created_at']
+
+
+class TaskSerializer(serializers.ModelSerializer):
+    assigned_to_details = ContactSerializer(source='assigned_to', many=True, read_only=True)
+    assigned_to = serializers.PrimaryKeyRelatedField(many=True, queryset=Contact.objects.all(), required=False)
+
+    class Meta:
+        model = Task
+        fields = [
+            'id', 'title', 'description', 'due_date', 'priority',
+            'status', 'category', 'assigned_to', 'assigned_to_details',
+            'created_by', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
 
 
 class RegistrationSerializer(serializers.ModelSerializer):

@@ -4,8 +4,14 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
-from .models import Contact
-from .serializers import RegistrationSerializer, LoginSerializer, UserDetailSerializer, ContactSerializer
+from .models import Contact, Task
+from .serializers import (
+    RegistrationSerializer,
+    LoginSerializer,
+    UserDetailSerializer,
+    ContactSerializer,
+    TaskSerializer
+)
 
 
 class RegistrationView(APIView):
@@ -95,3 +101,16 @@ class ContactDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Contact.objects.all()
     serializer_class = ContactSerializer
     permission_classes = [IsAuthenticated]
+
+
+class TaskListCreateView(generics.ListCreateAPIView):
+    """
+    GET: Liste aller Tasks abrufen.
+    POST: Einen neuen Task erstellen.
+    """
+    queryset = Task.objects.all().order_by('-created_at')
+    serializer_class = TaskSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
