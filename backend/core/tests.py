@@ -299,3 +299,43 @@ class TaskApiTest(APITestCase):
         response = self.client.get(self.tasks_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertGreaterEqual(len(response.data), 1)
+
+    def test_filter_tasks_by_status(self):
+        Task.objects.create(title="Task A", status="to_do")
+        Task.objects.create(title="Task B", status="in_progress")
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.get(f"{self.tasks_url}?status=in_progress")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(all(task['status'] == 'in_progress' for task in response.data))
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['title'], 'Task B')
+
+    def test_filter_tasks_by_priority(self):
+        Task.objects.create(title="Low Task", priority="low")
+        Task.objects.create(title="Urgent Task", priority="urgent")
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.get(f"{self.tasks_url}?priority=urgent")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(all(task['priority'] == 'urgent' for task in response.data))
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['title'], 'Urgent Task')
+
+    def test_filter_tasks_by_search(self):
+        Task.objects.create(title="Backend Refactoring", description="Refactor DRF views.")
+        Task.objects.create(title="Frontend Design", description="Update CSS styling.")
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.get(f"{self.tasks_url}?search=refactor")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['title'], 'Backend Refactoring')
+
+    def test_filter_tasks_by_assigned_to(self):
+        t1 = Task.objects.create(title="Assigned Task")
+        t1.assigned_to.add(self.contact)
+        Task.objects.create(title="Unassigned Task")
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.get(f"{self.tasks_url}?assigned_to={self.contact.id}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['title'], 'Assigned Task')
+

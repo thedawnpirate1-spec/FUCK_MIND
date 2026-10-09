@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework.views import APIView
 from rest_framework import generics
 from rest_framework.response import Response
@@ -105,12 +106,31 @@ class ContactDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class TaskListCreateView(generics.ListCreateAPIView):
     """
-    GET: Liste aller Tasks abrufen.
+    GET: Liste aller Tasks abrufen mit Unterstüzung für Query-Parameter (status, priority, search, assigned_to).
     POST: Einen neuen Task erstellen.
     """
-    queryset = Task.objects.all().order_by('-created_at')
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        queryset = Task.objects.all().order_by('-created_at')
+        status_param = self.request.query_params.get('status')
+        priority_param = self.request.query_params.get('priority')
+        search_param = self.request.query_params.get('search')
+        assigned_to_param = self.request.query_params.get('assigned_to')
+
+        if status_param:
+            queryset = queryset.filter(status=status_param)
+        if priority_param:
+            queryset = queryset.filter(priority=priority_param)
+        if assigned_to_param:
+            queryset = queryset.filter(assigned_to__id=assigned_to_param)
+        if search_param:
+            queryset = queryset.filter(
+                Q(title__icontains=search_param) | Q(description__icontains=search_param)
+            )
+        return queryset
+
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
+
