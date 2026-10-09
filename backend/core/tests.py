@@ -339,3 +339,40 @@ class TaskApiTest(APITestCase):
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['title'], 'Assigned Task')
 
+    def test_get_task_detail(self):
+        task = Task.objects.create(title="Detail Task", status="to_do")
+        detail_url = reverse('task-detail', kwargs={'pk': task.pk})
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.get(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['title'], 'Detail Task')
+
+    def test_patch_task_status_drag_and_drop(self):
+        task = Task.objects.create(title="Drag Drop Task", status="to_do")
+        detail_url = reverse('task-detail', kwargs={'pk': task.pk})
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        data = {"status": "in_progress"}
+        response = self.client.patch(detail_url, data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task.refresh_from_db()
+        self.assertEqual(task.status, 'in_progress')
+
+    def test_put_task_full_update(self):
+        task = Task.objects.create(title="Old Title", priority="low", status="to_do")
+        detail_url = reverse('task-detail', kwargs={'pk': task.pk})
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        data = {
+            "title": "New Updated Title",
+            "description": "Updated Description",
+            "priority": "urgent",
+            "status": "done",
+            "category": "User Story"
+        }
+        response = self.client.put(detail_url, data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task.refresh_from_db()
+        self.assertEqual(task.title, 'New Updated Title')
+        self.assertEqual(task.status, 'done')
+        self.assertEqual(task.priority, 'urgent')
+
+

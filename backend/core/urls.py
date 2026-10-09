@@ -6,7 +6,8 @@ from .views import (
     UserProfileView,
     ContactListCreateView,
     ContactDetailView,
-    TaskListCreateView
+    TaskListCreateView,
+    TaskDetailView
 )
 
 urlpatterns = [
@@ -17,4 +18,6 @@ urlpatterns = [
     path('contacts/', ContactListCreateView.as_view(), name='contact-list-create'),
     path('contacts/<int:pk>/', ContactDetailView.as_view(), name='contact-detail'),
     path('tasks/', TaskListCreateView.as_view(), name='task-list-create'),
+    path('tasks/<int:pk>/', TaskDetailView.as_view(), name='task-detail'),
 ]
+

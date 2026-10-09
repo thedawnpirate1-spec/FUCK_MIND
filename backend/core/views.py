@@ -134,3 +134,14 @@ class TaskListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
+
+class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET: Details eines einzelnen Tasks abrufen.
+    PUT / PATCH: Task bearbeiten (z.B. Status-Drag&Drop oder Prioritätsänderung).
+    DELETE: Task löschen.
+    """
+    queryset = Task.objects.all()
+    serializer_class = TaskSerializer
+    permission_classes = [IsAuthenticated]
+
