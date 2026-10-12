@@ -375,6 +375,37 @@ class TaskApiTest(APITestCase):
         self.assertEqual(task.status, 'done')
         self.assertEqual(task.priority, 'urgent')
 
+    def test_delete_task_success_with_cascade(self):
+        task = Task.objects.create(title="Task to delete", created_by=self.user)
+        task.assigned_to.add(self.contact)
+        subtask1 = Subtask.objects.create(task=task, title="Subtask 1")
+        subtask2 = Subtask.objects.create(task=task, title="Subtask 2")
+        detail_url = reverse('task-detail', kwargs={'pk': task.pk})
+
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.delete(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Task.objects.filter(pk=task.pk).exists())
+        # Cascade checks: subtasks must be removed
+        self.assertFalse(Subtask.objects.filter(pk=subtask1.pk).exists())
+        self.assertFalse(Subtask.objects.filter(pk=subtask2.pk).exists())
+        # Integrity checks: assigned contacts and user must NOT be deleted
+        self.assertTrue(Contact.objects.filter(pk=self.contact.pk).exists())
+        self.assertTrue(User.objects.filter(pk=self.user.pk).exists())
+
+    def test_delete_task_unauthenticated(self):
+        task = Task.objects.create(title="Unauthorized delete task")
+        detail_url = reverse('task-detail', kwargs={'pk': task.pk})
+        response = self.client.delete(detail_url)
+        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+        self.assertTrue(Task.objects.filter(pk=task.pk).exists())
+
+    def test_delete_task_not_found(self):
+        detail_url = reverse('task-detail', kwargs={'pk': 99999})
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.delete(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
 
 class SubtaskApiTest(APITestCase):
 
@@ -434,6 +465,16 @@ class SubtaskApiTest(APITestCase):
         self.assertIn('subtasks', response.data)
         self.assertEqual(len(response.data['subtasks']), 1)
         self.assertEqual(response.data['subtasks'][0]['title'], 'Nested Subtask')
+
+    def test_delete_subtask_success(self):
+        subtask = Subtask.objects.create(task=self.task, title="Delete Me")
+        detail_url = reverse('subtask-detail', kwargs={'pk': subtask.pk})
+
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.delete(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Subtask.objects.filter(pk=subtask.pk).exists())
+        self.assertTrue(Task.objects.filter(pk=self.task.pk).exists())
 
 
 

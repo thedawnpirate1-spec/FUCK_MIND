@@ -100,3 +100,10 @@ Backend REST API für die KanMind Anwendung (gebaut mit Django und Django REST F
 - Subtasks in `TaskSerializer` geschachtelt als `subtasks` Feld eingebunden
 - Unit-Tests für Subtask-Erstellung, Filtering nach Task ID, Checkbox State-Toggling (`is_completed`) und geschachtelte Task-Ausgabe in `core/tests.py` hinzugefügt (33 Tests bestanden)
 
+### Tag 11: Task Deletion & Cascade Cleanups (`DELETE /api/tasks/<id>/`)
+- `TaskDetailView` Deletion-Flow (`DELETE /api/tasks/<id>/`) mit Statuscode `204 NO CONTENT` verifiziert
+- Automatische Kaskadierung auf verknüpfte Subtasks (`models.CASCADE`) sichergestellt
+- Datenintegrität abgesichert: Weder zugewiesene Kontakte (`assigned_to`) noch der Ersteller (`CustomUser`) werden beim Löschen des Tasks entfernt
+- Subtask-Löschung (`DELETE /api/subtasks/<id>/`) ohne Nebeneffekte auf den übergeordneten Task verifiziert
+- Integrationstests (Erfolg mit Kaskade & Integrität, 401 Unauthorized, 404 Not Found) in `core/tests.py` hinzugefügt (37 Tests bestanden)
+
