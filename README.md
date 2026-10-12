@@ -37,8 +37,14 @@ Backend REST API für die KanMind Anwendung (gebaut mit Django und Django REST F
 - `GET /api/contacts/<id>/` - Einzelnen Kontakt abrufen (geschützt)
 - `PUT / PATCH /api/contacts/<id>/` - Kontakt aktualisieren (geschützt)
 - `DELETE /api/contacts/<id>/` - Kontakt löschen (geschützt)
-- `GET /api/tasks/` - Liste aller Tasks abrufen (geschützt)
+- `GET /api/tasks/` - Liste aller Tasks abrufen (geschützt, unterstützt Filtering per `status`, `priority`, `search`, `assigned_to`)
 - `POST /api/tasks/` - Neuen Task erstellen mit Assignees, Prio & Status (geschützt)
+- `GET /api/tasks/<id>/` - Einzelnen Task abrufen (geschützt, inkl. geschachtelter `subtasks`)
+- `PUT / PATCH /api/tasks/<id>/` - Task aktualisieren (Drag & Drop Status-Wechsel, Prio, Details) (geschützt)
+- `DELETE /api/tasks/<id>/` - Task löschen (geschützt)
+- `GET /api/subtasks/` - Subtasks abrufen (geschützt, filterbar per `?task=<task_id>`)
+- `POST /api/subtasks/` - Subtask für eine Task erstellen (geschützt)
+- `GET / PATCH / PUT / DELETE /api/subtasks/<id>/` - Subtask abrufen, bearbeiten (Checkbox-State `is_completed`) oder löschen (geschützt)
 
 ## Bisherige Schritte
 
@@ -77,3 +83,20 @@ Backend REST API für die KanMind Anwendung (gebaut mit Django und Django REST F
 - Migration `0003_task` generiert und angewendet
 - `TaskSerializer` (mit geschachtelter `assigned_to_details` Ausgabe) & `TaskListCreateView` implementiert
 - Integrationstests für Task-Erstellung & Zuordnung von Kontakten in `core/tests.py` hinzugefügt (22 Tests bestanden)
+
+### Tag 8: Task Filtering (`GET /api/tasks/`)
+- Dynamic filtering in `TaskListCreateView` via Query Parameters implementiert (`?status=`, `?priority=`, `?search=`, `?assigned_to=`)
+- Unit-Tests für alle Filtervariablen in `core/tests.py` hinzugefügt (26 Tests bestanden)
+
+### Tag 9: Task Updates (`PUT / PATCH /api/tasks/<id>/`)
+- `TaskDetailView` unter `/api/tasks/<id>/` bereitgestellt
+- Unterstützung für partial updates (`PATCH`) für Kanban Drag & Drop Statusübergänge (`to_do` -> `in_progress` -> `await_feedback` -> `done`) und Prioritätsänderungen
+- Unit-Tests für `GET`, `PUT` und `PATCH` in `core/tests.py` ergänzt (29 Tests bestanden)
+
+### Tag 10: Subtasks CRUD & Checkbox-State Persistenz (`/api/subtasks/`)
+- `Subtask` Modell (`task`, `title`, `is_completed`, `created_at`) in `core/models.py` angelegt
+- Migration `0004_subtask` generiert und angewendet
+- `SubtaskSerializer`, `SubtaskListCreateView` und `SubtaskDetailView` erstellt
+- Subtasks in `TaskSerializer` geschachtelt als `subtasks` Feld eingebunden
+- Unit-Tests für Subtask-Erstellung, Filtering nach Task ID, Checkbox State-Toggling (`is_completed`) und geschachtelte Task-Ausgabe in `core/tests.py` hinzugefügt (33 Tests bestanden)
+

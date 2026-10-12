@@ -5,14 +5,16 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
-from .models import Contact, Task
+from .models import Contact, Task, Subtask
 from .serializers import (
     RegistrationSerializer,
     LoginSerializer,
     UserDetailSerializer,
     ContactSerializer,
-    TaskSerializer
+    TaskSerializer,
+    SubtaskSerializer
 )
+
 
 
 class RegistrationView(APIView):
@@ -144,4 +146,32 @@ class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
+
+
+class SubtaskListCreateView(generics.ListCreateAPIView):
+    """
+    GET: Subtasks abrufen (optional filterbar per ?task=<task_id>).
+    POST: Einen neuen Subtask für eine Task erstellen.
+    """
+    serializer_class = SubtaskSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Subtask.objects.all().order_by('created_at')
+        task_id = self.request.query_params.get('task')
+        if task_id:
+            queryset = queryset.filter(task_id=task_id)
+        return queryset
+
+
+class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET: Details eines Subtasks abrufen.
+    PUT / PATCH: Subtask bearbeiten (z.B. Checkbox is_completed toggeln).
+    DELETE: Subtask löschen.
+    """
+    queryset = Subtask.objects.all()
+    serializer_class = SubtaskSerializer
+    permission_classes = [IsAuthenticated]
+
 

@@ -7,7 +7,9 @@ from .views import (
     ContactListCreateView,
     ContactDetailView,
     TaskListCreateView,
-    TaskDetailView
+    TaskDetailView,
+    SubtaskListCreateView,
+    SubtaskDetailView
 )
 
 urlpatterns = [
@@ -19,5 +21,8 @@ urlpatterns = [
     path('contacts/<int:pk>/', ContactDetailView.as_view(), name='contact-detail'),
     path('tasks/', TaskListCreateView.as_view(), name='task-list-create'),
     path('tasks/<int:pk>/', TaskDetailView.as_view(), name='task-detail'),
+    path('subtasks/', SubtaskListCreateView.as_view(), name='subtask-list-create'),
+    path('subtasks/<int:pk>/', SubtaskDetailView.as_view(), name='subtask-detail'),
 ]
+
 

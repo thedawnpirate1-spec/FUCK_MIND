@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from .models import Contact, Task
+from .models import Contact, Task, Subtask
 
 User = get_user_model()
 
@@ -374,5 +374,66 @@ class TaskApiTest(APITestCase):
         self.assertEqual(task.title, 'New Updated Title')
         self.assertEqual(task.status, 'done')
         self.assertEqual(task.priority, 'urgent')
+
+
+class SubtaskApiTest(APITestCase):
+
+    def setUp(self):
+        self.subtasks_url = reverse('subtask-list-create')
+        self.user = User.objects.create_user(
+            username='subtaskuser',
+            email='subtaskuser@example.com',
+            password='Password123!'
+        )
+        self.token = Token.objects.create(user=self.user)
+        self.task = Task.objects.create(
+            title='Parent Task',
+            created_by=self.user
+        )
+
+    def test_create_subtask(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        data = {
+            "task": self.task.id,
+            "title": "Subtask 1",
+            "is_completed": False
+        }
+        response = self.client.post(self.subtasks_url, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['title'], 'Subtask 1')
+        self.assertEqual(response.data['task'], self.task.id)
+
+    def test_list_subtasks_filtered_by_task(self):
+        Subtask.objects.create(task=self.task, title="Sub 1")
+        other_task = Task.objects.create(title="Other Task")
+        Subtask.objects.create(task=other_task, title="Sub 2")
+
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.get(f"{self.subtasks_url}?task={self.task.id}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['title'], 'Sub 1')
+
+    def test_toggle_subtask_is_completed(self):
+        subtask = Subtask.objects.create(task=self.task, title="Checkbox Test", is_completed=False)
+        detail_url = reverse('subtask-detail', kwargs={'pk': subtask.pk})
+
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.patch(detail_url, {"is_completed": True})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        subtask.refresh_from_db()
+        self.assertTrue(subtask.is_completed)
+
+    def test_subtasks_included_in_task_detail(self):
+        Subtask.objects.create(task=self.task, title="Nested Subtask")
+        task_detail_url = reverse('task-detail', kwargs={'pk': self.task.pk})
+
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.get(task_detail_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('subtasks', response.data)
+        self.assertEqual(len(response.data['subtasks']), 1)
+        self.assertEqual(response.data['subtasks'][0]['title'], 'Nested Subtask')
+
 
 
