@@ -22,3 +22,6 @@ urlpatterns = [
     path('api/', include('core.urls')),
 ]
 
+handler404 = 'core.views.custom_404_view'
+handler500 = 'core.views.custom_500_view'
+

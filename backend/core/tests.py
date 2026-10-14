@@ -477,4 +477,66 @@ class SubtaskApiTest(APITestCase):
         self.assertTrue(Task.objects.filter(pk=self.task.pk).exists())
 
 
+class ErrorHandlingApiTest(APITestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='errortestuser',
+            email='errortest@example.com',
+            password='Password123!'
+        )
+        self.token = Token.objects.create(user=self.user)
+
+    def test_unauthenticated_request_returns_401(self):
+        response = self.client.get(reverse('task-list-create'))
+        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+        self.assertIn('detail', response.data)
+
+    def test_not_found_endpoint_returns_404(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.get(reverse('task-detail', kwargs={'pk': 99999}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertIn('detail', response.data)
+
+    def test_custom_exception_handler_handles_500(self):
+        from .exceptions import custom_exception_handler
+        exc = Exception("Unerwarteter interner Fehler")
+        response = custom_exception_handler(exc, {})
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        self.assertEqual(response.data.get('detail'), 'Ein interner Serverfehler ist aufgetreten.')
+
+    def test_custom_404_view_response(self):
+        from .views import custom_404_view
+        response = custom_404_view(None)
+        self.assertEqual(response.status_code, 404)
+        self.assertIn(b'Die angeforderte Ressource wurde nicht gefunden.', response.content)
+
+    def test_custom_500_view_response(self):
+        from .views import custom_500_view
+        response = custom_500_view(None)
+        self.assertEqual(response.status_code, 500)
+        self.assertIn(b'Ein interner Serverfehler ist aufgetreten.', response.content)
+
+
+class CorsApiTest(APITestCase):
+
+    def test_cors_preflight_options_request(self):
+        response = self.client.options(
+            reverse('task-list-create'),
+            HTTP_ORIGIN='http://localhost:3000',
+            HTTP_ACCESS_CONTROL_REQUEST_METHOD='GET'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('Access-Control-Allow-Origin', response.headers)
+
+    def test_cors_headers_present_on_get(self):
+        response = self.client.get(
+            reverse('task-list-create'),
+            HTTP_ORIGIN='http://localhost:3000'
+        )
+        self.assertIn('Access-Control-Allow-Origin', response.headers)
+        self.assertEqual(response.headers['Access-Control-Allow-Origin'], 'http://localhost:3000')
+
+
+
 

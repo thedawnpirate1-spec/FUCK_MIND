@@ -175,3 +175,20 @@ class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
 
 
+def custom_404_view(request, exception=None):
+    """
+    Globaler 404-Handler für nicht gefundene Routen.
+    """
+    from django.http import JsonResponse
+    return JsonResponse({'detail': 'Die angeforderte Ressource wurde nicht gefunden.'}, status=404)
+
+
+def custom_500_view(request):
+    """
+    Globaler 500-Handler für Serverfehler.
+    """
+    from django.http import JsonResponse
+    return JsonResponse({'detail': 'Ein interner Serverfehler ist aufgetreten.'}, status=500)
+
+
+

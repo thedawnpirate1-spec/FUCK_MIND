@@ -107,3 +107,11 @@ Backend REST API für die KanMind Anwendung (gebaut mit Django und Django REST F
 - Subtask-Löschung (`DELETE /api/subtasks/<id>/`) ohne Nebeneffekte auf den übergeordneten Task verifiziert
 - Integrationstests (Erfolg mit Kaskade & Integrität, 401 Unauthorized, 404 Not Found) in `core/tests.py` hinzugefügt (37 Tests bestanden)
 
+### Tag 12: Globales Error Handling, Statuscodes & CORS Policies
+- Zentralen `custom_exception_handler` in `core/exceptions.py` implementiert und in `REST_FRAMEWORK` registriert
+- Einheitliche JSON-Fehlerausgaben für 400, 401, 403, 404 und unerwartete 500er Serverfehler
+- Django Root-Handler `handler404` und `handler500` in `kanmind_backend/urls.py` auf JSON-Responses umgestellt
+- CORS Policies gehärtet: Dynamische Steuerung via `.env` (`CORS_ALLOW_ALL_ORIGINS`, `CORS_ALLOWED_ORIGINS`), Credentials-Support und explizite Header
+- Umfassende Integrationstests für Error Handling & CORS in `core/tests.py` ergänzt (44 Tests bestanden)
+
+
