@@ -538,5 +538,145 @@ class CorsApiTest(APITestCase):
         self.assertEqual(response.headers['Access-Control-Allow-Origin'], 'http://localhost:3000')
 
 
+class AuthHeaderIntegrationTest(APITestCase):
+    """
+    Tests für flexible Auth-Header (Bearer, Token, Case-Insensitive, Fehlerbehandlung).
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='authheadertestuser',
+            email='authheadertest@example.com',
+            password='Password123!'
+        )
+        self.token = Token.objects.create(user=self.user)
+        self.url = reverse('user-profile')
+
+    def test_bearer_token_authorization(self):
+        response = self.client.get(self.url, HTTP_AUTHORIZATION=f'Bearer {self.token.key}')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['username'], 'authheadertestuser')
+
+    def test_lowercase_bearer_token_authorization(self):
+        response = self.client.get(self.url, HTTP_AUTHORIZATION=f'bearer {self.token.key}')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_standard_token_authorization(self):
+        response = self.client.get(self.url, HTTP_AUTHORIZATION=f'Token {self.token.key}')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_lowercase_token_authorization(self):
+        response = self.client.get(self.url, HTTP_AUTHORIZATION=f'token {self.token.key}')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_malformed_auth_header_empty(self):
+        response = self.client.get(self.url, HTTP_AUTHORIZATION='Bearer')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn('detail', response.data)
+
+    def test_malformed_auth_header_extra_parts(self):
+        response = self.client.get(self.url, HTTP_AUTHORIZATION='Bearer part1 part2')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_invalid_token_returns_401(self):
+        response = self.client.get(self.url, HTTP_AUTHORIZATION='Bearer non_existent_token_12345')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class PayloadEdgeCasesTest(APITestCase):
+    """
+    Tests für Randfälle bei Payloads (verschachtelte Subtasks, leere Daten, Whitespace).
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='payloaduser',
+            email='payloaduser@example.com',
+            password='Password123!'
+        )
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token.key)
+        self.contact = Contact.objects.create(name='Test Contact', email='contact@example.com')
+
+    def test_create_task_with_nested_subtasks_dict(self):
+        data = {
+            "title": "Task with Nested Subtasks",
+            "due_date": "2026-11-01",
+            "category": "User Story",
+            "priority": "urgent",
+            "status": "to_do",
+            "subtasks": [
+                {"title": "First Subtask"},
+                {"title": "Second Subtask"}
+            ]
+        }
+        response = self.client.post(reverse('task-list-create'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(len(response.data['subtasks']), 2)
+        task_id = response.data['id']
+        self.assertEqual(Subtask.objects.filter(task_id=task_id).count(), 2)
+
+    def test_create_task_with_nested_subtasks_string_list(self):
+        data = {
+            "title": "Task with String Subtasks",
+            "due_date": "2026-11-02",
+            "subtasks": ["Quick Subtask 1", "Quick Subtask 2"]
+        }
+        response = self.client.post(reverse('task-list-create'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(len(response.data['subtasks']), 2)
+        self.assertEqual(response.data['subtasks'][0]['title'], 'Quick Subtask 1')
+
+    def test_create_task_with_empty_due_date_string(self):
+        data = {
+            "title": "Task without Due Date",
+            "due_date": ""
+        }
+        response = self.client.post(reverse('task-list-create'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIsNone(response.data['due_date'])
+
+    def test_create_task_with_assigned_to_null(self):
+        data = {
+            "title": "Task with Null Assigned",
+            "assigned_to": None
+        }
+        response = self.client.post(reverse('task-list-create'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['assigned_to'], [])
+
+    def test_create_task_normalizes_uppercase_status_and_priority(self):
+        data = {
+            "title": "Case Insensitive Task",
+            "status": "IN_PROGRESS",
+            "priority": "URGENT"
+        }
+        response = self.client.post(reverse('task-list-create'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['status'], 'in_progress')
+        self.assertEqual(response.data['priority'], 'urgent')
+
+    def test_contact_trims_whitespace_and_lowercases_email(self):
+        data = {
+            "name": "   Jane Doe   ",
+            "email": "  JANE.DOE@EXAMPLE.COM  ",
+            "phone": "0123456789"
+        }
+        response = self.client.post(reverse('contact-list-create'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['name'], 'Jane Doe')
+        self.assertEqual(response.data['email'], 'jane.doe@example.com')
+
+    def test_login_trims_whitespace(self):
+        data = {
+            "username": "   payloaduser   ",
+            "password": "Password123!"
+        }
+        response = self.client.post(reverse('login'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('token', response.data)
+
+
+
 
 

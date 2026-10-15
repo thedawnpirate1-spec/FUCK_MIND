@@ -114,4 +114,12 @@ Backend REST API für die KanMind Anwendung (gebaut mit Django und Django REST F
 - CORS Policies gehärtet: Dynamische Steuerung via `.env` (`CORS_ALLOW_ALL_ORIGINS`, `CORS_ALLOWED_ORIGINS`), Credentials-Support und explizite Header
 - Umfassende Integrationstests für Error Handling & CORS in `core/tests.py` ergänzt (44 Tests bestanden)
 
+### Tag 13: Endpunkt-Integrationstests & Randfall-Absicherung
+- `FlexibleTokenAuthentication` in `core/authentication.py` implementiert (unterstützt 'Token' und 'Bearer' Header flexibel und case-insensitiv)
+- `TaskSerializer` um verschachtelte Erstellung von Subtasks erweitert (`create` und `update`)
+- Payload-Randfälle abgesichert: Leerstrings bei Datumsfeldern (`due_date`), `null`-Werte bei `assigned_to`, Whitespace-Trimming und Normalisierung bei Status und Priorität
+- Postman Collection in `postman/KanMind_API.postman_collection.json` für alle Endpunkte hinterlegt
+- Integrationstests in `core/tests.py` für Header und Payload-Randfälle hinzugefügt (58 Tests bestanden)
+
+
 

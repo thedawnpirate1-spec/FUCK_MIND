@@ -1,0 +1,451 @@
+{
+	"info": {
+		"_postman_id": "a9b7c8d9-e0f1-4234-8567-9abcdef01234",
+		"name": "KanMind API",
+		"description": "Integrationstest-Sammlung für alle KanMind API Endpunkte (Auth, Kontakte, Tasks, Subtasks).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://127.0.0.1:8000",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Authentication",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"testuser_postman\",\n  \"email\": \"postman@example.com\",\n  \"password\": \"SafePassword123!\",\n  \"repeated_password\": \"SafePassword123!\",\n  \"first_name\": \"Postman\",\n  \"last_name\": \"Tester\",\n  \"color\": \"#FF7A00\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "register", ""]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const jsonData = pm.response.json();",
+									"if (jsonData.token) {",
+									"    pm.collectionVariables.set('auth_token', jsonData.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"testuser_postman\",\n  \"password\": \"SafePassword123!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "login", ""]
+						}
+					}
+				},
+				{
+					"name": "User Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/auth/user/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "user", ""]
+						}
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/auth/logout/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "logout", ""]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Contacts",
+			"item": [
+				{
+					"name": "Get Contacts",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/contacts/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "contacts", ""]
+						}
+					}
+				},
+				{
+					"name": "Create Contact",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Erika Mustermann\",\n  \"email\": \"erika@example.com\",\n  \"phone\": \"+49 170 1234567\",\n  \"color\": \"#9327FF\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/contacts/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "contacts", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Contact Detail",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/contacts/1/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "contacts", "1", ""]
+						}
+					}
+				},
+				{
+					"name": "Update Contact",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"+49 170 9876543\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/contacts/1/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "contacts", "1", ""]
+						}
+					}
+				},
+				{
+					"name": "Delete Contact",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/contacts/1/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "contacts", "1", ""]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Tasks",
+			"item": [
+				{
+					"name": "Get Tasks",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/tasks/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "tasks", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Tasks Filtered",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/tasks/?status=to_do&priority=urgent",
+							"host": ["{{base_url}}"],
+							"path": ["api", "tasks", ""],
+							"query": [
+								{
+									"key": "status",
+									"value": "to_do"
+								},
+								{
+									"key": "priority",
+									"value": "urgent"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Task with Subtasks",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"API Refactoring & Härtung\",\n  \"description\": \"Integrationstests und Payload Edge Cases absichern\",\n  \"due_date\": \"2026-12-31\",\n  \"priority\": \"urgent\",\n  \"status\": \"to_do\",\n  \"category\": \"User Story\",\n  \"assigned_to\": [],\n  \"subtasks\": [\n    {\"title\": \"Auth Header Tests\"},\n    {\"title\": \"Payload Validierung\"}\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/tasks/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "tasks", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Task Detail",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/tasks/1/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "tasks", "1", ""]
+						}
+					}
+				},
+				{
+					"name": "Update Task Status (Drag & Drop)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"in_progress\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/tasks/1/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "tasks", "1", ""]
+						}
+					}
+				},
+				{
+					"name": "Delete Task",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/tasks/1/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "tasks", "1", ""]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Subtasks",
+			"item": [
+				{
+					"name": "Get Subtasks for Task",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/subtasks/?task=1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "subtasks", ""],
+							"query": [
+								{
+									"key": "task",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Subtask",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"task\": 1,\n  \"title\": \"Manueller Subtask\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/subtasks/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "subtasks", ""]
+						}
+					}
+				},
+				{
+					"name": "Toggle Subtask Completed",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"is_completed\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/subtasks/1/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "subtasks", "1", ""]
+						}
+					}
+				},
+				{
+					"name": "Delete Subtask",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/subtasks/1/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "subtasks", "1", ""]
+						}
+					}
+				}
+			]
+		}
+	]
+}

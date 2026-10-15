@@ -150,7 +150,7 @@ CORS_ALLOW_HEADERS = [
 # REST Framework Einstellungen
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
+        'core.authentication.FlexibleTokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
