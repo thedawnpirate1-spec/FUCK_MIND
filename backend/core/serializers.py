@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.password_validation import validate_password
-from .models import Contact, Task, Subtask
+from .models import Contact, Task, Subtask, Board, Comment
 
 User = get_user_model()
 
@@ -11,10 +11,11 @@ class UserDetailSerializer(serializers.ModelSerializer):
     Serializer für die Profildaten des angemeldeten Benutzers.
     """
     user_id = serializers.IntegerField(source='id', read_only=True)
+    fullname = serializers.CharField(read_only=True)
 
     class Meta:
         model = User
-        fields = ['user_id', 'username', 'email', 'first_name', 'last_name', 'color']
+        fields = ['user_id', 'id', 'username', 'email', 'first_name', 'last_name', 'fullname', 'color']
 
 
 class ContactSerializer(serializers.ModelSerializer):
@@ -55,18 +56,25 @@ class SubtaskSerializer(serializers.ModelSerializer):
 
 class TaskSerializer(serializers.ModelSerializer):
     """
-    Serializer für Tasks inklusive verschachtelter Subtasks und Kontaktdetails.
+    Serializer für Tasks inklusive verschachtelter Subtasks, Assignees und Reviewern.
     """
     assigned_to_details = ContactSerializer(source='assigned_to', many=True, read_only=True)
     assigned_to = serializers.PrimaryKeyRelatedField(many=True, queryset=Contact.objects.all(), required=False)
     subtasks = SubtaskSerializer(many=True, required=False)
+    assignee = UserDetailSerializer(read_only=True)
+    reviewer = UserDetailSerializer(read_only=True)
+    assignee_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), source='assignee', required=False, allow_null=True)
+    reviewer_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), source='reviewer', required=False, allow_null=True)
+    comments_count = serializers.IntegerField(read_only=True)
+    board = serializers.PrimaryKeyRelatedField(queryset=Board.objects.all(), required=False, allow_null=True)
 
     class Meta:
         model = Task
         fields = [
-            'id', 'title', 'description', 'due_date', 'priority',
+            'id', 'board', 'title', 'description', 'due_date', 'priority',
             'status', 'category', 'assigned_to', 'assigned_to_details',
-            'subtasks', 'created_by', 'created_at', 'updated_at'
+            'assignee', 'assignee_id', 'reviewer', 'reviewer_id',
+            'comments_count', 'subtasks', 'created_by', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
 
@@ -78,6 +86,12 @@ class TaskSerializer(serializers.ModelSerializer):
 
         if 'due_date' in data_copy and data_copy['due_date'] == '':
             data_copy['due_date'] = None
+
+        if data_copy.get('assignee_id') in ['', 0]:
+            data_copy['assignee_id'] = None
+
+        if data_copy.get('reviewer_id') in ['', 0]:
+            data_copy['reviewer_id'] = None
 
         if 'status' in data_copy and isinstance(data_copy['status'], str):
             data_copy['status'] = data_copy['status'].strip().lower().replace(' ', '_')
@@ -134,17 +148,62 @@ class TaskSerializer(serializers.ModelSerializer):
         return instance
 
 
+class CommentSerializer(serializers.ModelSerializer):
+    """
+    Serializer für Task-Kommentare.
+    """
+    author = serializers.CharField(source='author.fullname', read_only=True)
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'task', 'author', 'content', 'created_at']
+        read_only_fields = ['id', 'task', 'author', 'created_at']
+
+
+class BoardSerializer(serializers.ModelSerializer):
+    """
+    Serializer für Boards mit Mitgliedern und zugehörigen Tasks.
+    """
+    members = UserDetailSerializer(many=True, read_only=True)
+    tasks = TaskSerializer(many=True, read_only=True)
+    owner = UserDetailSerializer(read_only=True)
+
+    class Meta:
+        model = Board
+        fields = ['id', 'title', 'members', 'tasks', 'owner', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'owner', 'created_at', 'updated_at']
+
+    def to_internal_value(self, data):
+        data_copy = data.copy() if hasattr(data, 'copy') else dict(data)
+        self._raw_member_ids = data_copy.pop('members', None)
+        return super().to_internal_value(data_copy)
+
+    def create(self, validated_data):
+        board = Board.objects.create(**validated_data)
+        if hasattr(self, '_raw_member_ids') and self._raw_member_ids is not None:
+            board.members.set(self._raw_member_ids)
+        return board
+
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+        if hasattr(self, '_raw_member_ids') and self._raw_member_ids is not None:
+            instance.members.set(self._raw_member_ids)
+        return instance
+
+
 class RegistrationSerializer(serializers.ModelSerializer):
     """
-    Serializer für die Benutzerregistrierung mit Passwort-Validierung.
+    Serializer für die Benutzerregistrierung mit Passwort-Validierung und optionalem Fullname.
     """
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     repeated_password = serializers.CharField(write_only=True, required=True)
+    fullname = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'repeated_password', 'first_name', 'last_name', 'color']
+        fields = ['username', 'email', 'password', 'repeated_password', 'first_name', 'last_name', 'fullname', 'color']
         extra_kwargs = {
+            'username': {'required': False},
             'first_name': {'required': False, 'allow_blank': True},
             'last_name': {'required': False, 'allow_blank': True},
             'color': {'required': False},
@@ -153,10 +212,27 @@ class RegistrationSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if attrs['password'] != attrs['repeated_password']:
             raise serializers.ValidationError({"password": "Die Passwörter stimmen nicht überein."})
+
+        if not attrs.get('username') and attrs.get('email'):
+            base_username = attrs['email'].split('@')[0]
+            username = base_username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+            attrs['username'] = username
+
+        fullname = attrs.get('fullname')
+        if fullname and not attrs.get('first_name'):
+            parts = fullname.strip().split(' ', 1)
+            attrs['first_name'] = parts[0]
+            attrs['last_name'] = parts[1] if len(parts) > 1 else ''
+
         return attrs
 
     def create(self, validated_data):
         validated_data.pop('repeated_password')
+        validated_data.pop('fullname', None)
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],

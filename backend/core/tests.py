@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from .models import Contact, Task, Subtask
+from .models import Contact, Task, Subtask, Board, Comment
 
 User = get_user_model()
 
@@ -693,6 +693,120 @@ class SwaggerApiDocumentationTest(APITestCase):
     def test_redoc_endpoint_returns_200(self):
         response = self.client.get(reverse('redoc'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class FrontendIntegrationTest(APITestCase):
+    """
+    Tests für Frontend-Endpunkte (Registration/Login mit Fullname, Email-Check, Boards, Kommentare, Dashboard).
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='maxmustermann',
+            email='max@example.com',
+            password='Password123!',
+            first_name='Max',
+            last_name='Mustermann'
+        )
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+
+    def test_registration_with_fullname_no_username(self):
+        data = {
+            "fullname": "Erika Mustermann",
+            "email": "erika.mustermann@example.com",
+            "password": "SafePassword123!",
+            "repeated_password": "SafePassword123!"
+        }
+        response = self.client.post(reverse('registration-frontend'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn('token', response.data)
+        self.assertEqual(response.data['fullname'], 'Erika Mustermann')
+
+    def test_login_returns_fullname(self):
+        data = {
+            "email": "max@example.com",
+            "password": "Password123!"
+        }
+        response = self.client.post(reverse('login-frontend'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['fullname'], 'Max Mustermann')
+
+    def test_email_check_existing_user(self):
+        response = self.client.get(reverse('email-check') + '?email=max@example.com')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['email'], 'max@example.com')
+        self.assertEqual(response.data['fullname'], 'Max Mustermann')
+
+    def test_email_check_non_existing_user(self):
+        response = self.client.get(reverse('email-check') + '?email=unknown@example.com')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_board_crud_flow(self):
+        other_user = User.objects.create_user(
+            username='colleague',
+            email='colleague@example.com',
+            password='Password123!',
+            first_name='Colleague',
+            last_name='User'
+        )
+        create_data = {
+            "title": "Marketing Sprint",
+            "members": [self.user.id, other_user.id]
+        }
+        create_resp = self.client.post(reverse('board-list-create'), create_data, format='json')
+        self.assertEqual(create_resp.status_code, status.HTTP_201_CREATED)
+        board_id = create_resp.data['id']
+        self.assertEqual(len(create_resp.data['members']), 2)
+
+        detail_resp = self.client.get(reverse('board-detail', kwargs={'pk': board_id}))
+        self.assertEqual(detail_resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(detail_resp.data['title'], 'Marketing Sprint')
+
+    def test_task_with_board_assignee_reviewer_and_comments(self):
+        board = Board.objects.create(title="Dev Board", owner=self.user)
+        board.members.add(self.user)
+
+        task_data = {
+            "board": board.id,
+            "title": "Implement Frontend Hook",
+            "description": "Connect API",
+            "status": "to_do",
+            "priority": "urgent",
+            "assignee_id": self.user.id,
+            "reviewer_id": self.user.id,
+            "due_date": "2026-11-15"
+        }
+        task_resp = self.client.post(reverse('task-list-create'), task_data, format='json')
+        self.assertEqual(task_resp.status_code, status.HTTP_201_CREATED)
+        task_id = task_resp.data['id']
+        self.assertEqual(task_resp.data['board'], board.id)
+        self.assertEqual(task_resp.data['assignee']['id'], self.user.id)
+
+        assigned_resp = self.client.get(reverse('tasks-assigned-to-me'))
+        self.assertEqual(assigned_resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(assigned_resp.data), 1)
+
+        reviewing_resp = self.client.get(reverse('tasks-reviewing'))
+        self.assertEqual(reviewing_resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(reviewing_resp.data), 1)
+
+        comment_resp = self.client.post(
+            reverse('task-comments', kwargs={'task_id': task_id}),
+            {"content": "Looks good so far!"},
+            format='json'
+        )
+        self.assertEqual(comment_resp.status_code, status.HTTP_201_CREATED)
+        comment_id = comment_resp.data['id']
+        self.assertEqual(comment_resp.data['author'], 'Max Mustermann')
+
+        list_comments = self.client.get(reverse('task-comments', kwargs={'task_id': task_id}))
+        self.assertEqual(list_comments.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(list_comments.data), 1)
+
+        del_comment = self.client.delete(reverse('task-comment-detail', kwargs={'task_id': task_id, 'pk': comment_id}))
+        self.assertEqual(del_comment.status_code, status.HTTP_204_NO_CONTENT)
+
 
 
 
