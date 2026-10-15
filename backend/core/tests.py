@@ -677,6 +677,25 @@ class PayloadEdgeCasesTest(APITestCase):
         self.assertIn('token', response.data)
 
 
+class SwaggerApiDocumentationTest(APITestCase):
+    """
+    Tests für OpenAPI-Schema- und Swagger-UI-Endpunkte.
+    """
+
+    def test_schema_endpoint_returns_200(self):
+        response = self.client.get(reverse('schema'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_swagger_ui_endpoint_returns_200(self):
+        response = self.client.get(reverse('swagger-ui'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_redoc_endpoint_returns_200(self):
+        response = self.client.get(reverse('redoc'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+
 
 
 

@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 from .models import Contact, Task, Subtask
 from .serializers import (
     RegistrationSerializer,
@@ -16,14 +17,15 @@ from .serializers import (
 )
 
 
-
 class RegistrationView(APIView):
     """
     Endpunkt für die Registrierung neuer Benutzer.
     Erstellt den Benutzer und liefert direkt einen Auth-Token zurück.
     """
     permission_classes = [AllowAny]
+    serializer_class = RegistrationSerializer
 
+    @extend_schema(responses={201: RegistrationSerializer})
     def post(self, request):
         serializer = RegistrationSerializer(data=request.data)
         if serializer.is_valid():
@@ -44,7 +46,9 @@ class LoginView(APIView):
     Liefert bei Erfolg den Token und Benutzerdaten zurück.
     """
     permission_classes = [AllowAny]
+    serializer_class = LoginSerializer
 
+    @extend_schema(responses={200: UserDetailSerializer})
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
@@ -68,6 +72,7 @@ class LogoutView(APIView):
     """
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=None, responses={200: OpenApiResponse(description='Erfolgreich abgemeldet.')})
     def post(self, request):
         try:
             request.user.auth_token.delete()
@@ -81,10 +86,13 @@ class UserProfileView(APIView):
     Geschützter Endpunkt zum Abrufen der Daten des angemeldeten Benutzers.
     """
     permission_classes = [IsAuthenticated]
+    serializer_class = UserDetailSerializer
 
+    @extend_schema(responses={200: UserDetailSerializer})
     def get(self, request):
         serializer = UserDetailSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
 class ContactListCreateView(generics.ListCreateAPIView):

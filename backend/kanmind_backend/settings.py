@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
+    'drf_spectacular',
     
     # Eigene Apps
     'core',
@@ -156,7 +157,17 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'EXCEPTION_HANDLER': 'core.exceptions.custom_exception_handler',
+}
+
+# Swagger / OpenAPI Einstellungen (drf-spectacular)
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'KanMind API',
+    'DESCRIPTION': 'RESTful API für das KanMind Kanban Board Task-Management Backend.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
