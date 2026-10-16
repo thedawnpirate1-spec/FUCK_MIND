@@ -14,6 +14,7 @@ from .serializers import (
     UserDetailSerializer,
     ContactSerializer,
     TaskSerializer,
+    BoardTaskSerializer,
     SubtaskSerializer,
     BoardSerializer,
     CommentSerializer
@@ -215,7 +216,7 @@ class AssignedTasksView(generics.ListAPIView):
     """
     GET: Liste aller Tasks abrufen, die dem angemeldeten Benutzer zugewiesen sind.
     """
-    serializer_class = TaskSerializer
+    serializer_class = BoardTaskSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -226,7 +227,7 @@ class ReviewingTasksView(generics.ListAPIView):
     """
     GET: Liste aller Tasks abrufen, bei denen der angemeldete Benutzer Reviewer ist.
     """
-    serializer_class = TaskSerializer
+    serializer_class = BoardTaskSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):

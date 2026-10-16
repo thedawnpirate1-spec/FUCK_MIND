@@ -446,6 +446,169 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "5. Boards & Comments",
+			"item": [
+				{
+					"name": "Get Boards",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/boards/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "boards", ""]
+						}
+					}
+				},
+				{
+					"name": "Create Board",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Sprint Board\",\n  \"members\": []\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/boards/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "boards", ""]
+						}
+					}
+				},
+				{
+					"name": "Get Board Detail",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/boards/1/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "boards", "1", ""]
+						}
+					}
+				},
+				{
+					"name": "Tasks Assigned to Me",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/tasks/assigned-to-me/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "tasks", "assigned-to-me", ""]
+						}
+					}
+				},
+				{
+					"name": "Tasks Reviewing",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/tasks/reviewing/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "tasks", "reviewing", ""]
+						}
+					}
+				},
+				{
+					"name": "Check Email",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/email-check/?email=kevin@kovacsi.de",
+							"host": ["{{base_url}}"],
+							"path": ["api", "email-check", ""],
+							"query": [
+								{
+									"key": "email",
+									"value": "kevin@kovacsi.de"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Task Comments",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/tasks/1/comments/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "tasks", "1", "comments", ""]
+						}
+					}
+				},
+				{
+					"name": "Create Task Comment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": \"Ticket überprüft und freigegeben.\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/tasks/1/comments/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "tasks", "1", "comments", ""]
+						}
+					}
+				}
+			]
 		}
 	]
 }

@@ -53,13 +53,17 @@ class Task(models.Model):
     PRIORITY_CHOICES = [
         ('low', 'Low'),
         ('medium', 'Medium'),
+        ('high', 'High'),
         ('urgent', 'Urgent'),
     ]
 
     STATUS_CHOICES = [
         ('to_do', 'To Do'),
+        ('to-do', 'To Do'),
         ('in_progress', 'In Progress'),
+        ('in-progress', 'In Progress'),
         ('await_feedback', 'Await Feedback'),
+        ('review', 'Review'),
         ('done', 'Done'),
     ]
 

@@ -85,6 +85,22 @@ Nach dem Start des Entwicklungsservers stehen folgende Dokumentations-Tools zur 
 | `PUT` / `PATCH` | `/api/subtasks/<id>/` | Token / Bearer | Subtask bearbeiten (z.B. Status `is_completed` toggeln) |
 | `DELETE` | `/api/subtasks/<id>/` | Token / Bearer | Subtask löschen |
 
+### Boards & Kommentare (Frontend-Integration)
+
+| Methode | Endpunkt | Schutz | Beschreibung |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/boards/` | Token / Bearer | Liste aller Boards des Benutzers (inkl. Member-/Ticket-Zähler) |
+| `POST` | `/api/boards/` | Token / Bearer | Neues Board mit Mitgliedern anlegen |
+| `GET` | `/api/boards/<id>/` | Token / Bearer | Board-Details inklusive verknüpfter Tasks und Mitglieder abrufen |
+| `PUT` / `PATCH` | `/api/boards/<id>/` | Token / Bearer | Board bearbeiten (Titel, Mitgliederliste) |
+| `DELETE` | `/api/boards/<id>/` | Token / Bearer | Board löschen |
+| `GET` | `/api/tasks/assigned-to-me/` | Token / Bearer | Eigene zugewiesene Tasks für das Dashboard abrufen |
+| `GET` | `/api/tasks/reviewing/` | Token / Bearer | Tasks im Review für das Dashboard abrufen |
+| `GET` | `/api/email-check/` | Token / Bearer | E-Mail-Adresse für Board-Einladungen prüfen (`?email=...`) |
+| `GET` | `/api/tasks/<id>/comments/` | Token / Bearer | Kommentare eines Tasks abrufen |
+| `POST` | `/api/tasks/<id>/comments/` | Token / Bearer | Neuen Kommentar zu einem Task erstellen |
+| `DELETE` | `/api/tasks/<task_id>/comments/<id>/` | Token / Bearer | Eigenen Kommentar löschen |
+
 ## Deployment Leitfaden
 
 Für das Ausrollen in einer Produktivumgebung (z.B. Linux VPS, Render, Railway, Heroku) sind folgende Schritte zu beachten:

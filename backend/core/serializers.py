@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.password_validation import validate_password
+from drf_spectacular.utils import extend_schema_field
 from .models import Contact, Task, Subtask, Board, Comment
 
 User = get_user_model()
@@ -160,18 +161,64 @@ class CommentSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'task', 'author', 'created_at']
 
 
+class BoardTaskSerializer(TaskSerializer):
+    """
+    Serializer für Tasks mit Frontend-kompatiblen Status- und Prioritätsbezeichnungen.
+    """
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        status_map = {
+            'to_do': 'to-do',
+            'in_progress': 'in-progress',
+            'await_feedback': 'review',
+        }
+        prio_map = {
+            'urgent': 'high',
+        }
+        if data.get('status') in status_map:
+            data['status'] = status_map[data['status']]
+        if data.get('priority') in prio_map:
+            data['priority'] = prio_map[data['priority']]
+        return data
+
+
 class BoardSerializer(serializers.ModelSerializer):
     """
     Serializer für Boards mit Mitgliedern und zugehörigen Tasks.
     """
     members = UserDetailSerializer(many=True, read_only=True)
-    tasks = TaskSerializer(many=True, read_only=True)
+    tasks = BoardTaskSerializer(many=True, read_only=True)
     owner = UserDetailSerializer(read_only=True)
+    owner_id = serializers.IntegerField(read_only=True, allow_null=True)
+    member_count = serializers.SerializerMethodField()
+    ticket_count = serializers.SerializerMethodField()
+    tasks_to_do_count = serializers.SerializerMethodField()
+    tasks_high_prio_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Board
-        fields = ['id', 'title', 'members', 'tasks', 'owner', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'owner', 'created_at', 'updated_at']
+        fields = [
+            'id', 'title', 'members', 'tasks', 'owner', 'owner_id',
+            'member_count', 'ticket_count', 'tasks_to_do_count', 'tasks_high_prio_count',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'owner', 'owner_id', 'created_at', 'updated_at']
+
+    @extend_schema_field(serializers.IntegerField)
+    def get_member_count(self, obj) -> int:
+        return obj.members.count()
+
+    @extend_schema_field(serializers.IntegerField)
+    def get_ticket_count(self, obj) -> int:
+        return obj.tasks.count()
+
+    @extend_schema_field(serializers.IntegerField)
+    def get_tasks_to_do_count(self, obj) -> int:
+        return obj.tasks.filter(status__in=['to_do', 'to-do']).count()
+
+    @extend_schema_field(serializers.IntegerField)
+    def get_tasks_high_prio_count(self, obj) -> int:
+        return obj.tasks.filter(priority__in=['high', 'urgent']).count()
 
     def to_internal_value(self, data):
         data_copy = data.copy() if hasattr(data, 'copy') else dict(data)

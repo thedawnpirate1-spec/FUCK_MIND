@@ -807,6 +807,60 @@ class FrontendIntegrationTest(APITestCase):
         del_comment = self.client.delete(reverse('task-comment-detail', kwargs={'task_id': task_id, 'pk': comment_id}))
         self.assertEqual(del_comment.status_code, status.HTTP_204_NO_CONTENT)
 
+    def test_board_metrics_and_task_frontend_representation(self):
+        colleague = User.objects.create_user(
+            username='colleague2',
+            email='colleague2@example.com',
+            password='Password123!'
+        )
+        board = Board.objects.create(title="Metrics Board", owner=self.user)
+        board.members.add(self.user, colleague)
+
+        Task.objects.create(
+            board=board,
+            title="Urgent ToDo Task",
+            status="to_do",
+            priority="urgent",
+            assignee=self.user,
+            created_by=self.user
+        )
+        Task.objects.create(
+            board=board,
+            title="In Progress High Task",
+            status="in-progress",
+            priority="high",
+            assignee=self.user,
+            created_by=self.user
+        )
+        Task.objects.create(
+            board=board,
+            title="Done Task",
+            status="done",
+            priority="low",
+            assignee=self.user,
+            created_by=self.user
+        )
+
+        board_resp = self.client.get(reverse('board-detail', kwargs={'pk': board.id}))
+        self.assertEqual(board_resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(board_resp.data['owner_id'], self.user.id)
+        self.assertEqual(board_resp.data['member_count'], 2)
+        self.assertEqual(board_resp.data['ticket_count'], 3)
+        self.assertEqual(board_resp.data['tasks_to_do_count'], 1)
+        self.assertEqual(board_resp.data['tasks_high_prio_count'], 2)
+
+        tasks = board_resp.data['tasks']
+        urgent_task = next(t for t in tasks if t['title'] == 'Urgent ToDo Task')
+        self.assertEqual(urgent_task['status'], 'to-do')
+        self.assertEqual(urgent_task['priority'], 'high')
+
+        assigned_resp = self.client.get(reverse('tasks-assigned-to-me'))
+        self.assertEqual(assigned_resp.status_code, status.HTTP_200_OK)
+        assigned_urgent = next(t for t in assigned_resp.data if t['title'] == 'Urgent ToDo Task')
+        self.assertEqual(assigned_urgent['status'], 'to-do')
+        self.assertEqual(assigned_urgent['priority'], 'high')
+
+
 
 
 

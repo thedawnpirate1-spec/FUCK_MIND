@@ -50,8 +50,8 @@ class Command(BaseCommand):
             title='Frontend an REST API anbinden',
             defaults={
                 'description': 'Integration der Backend-Endpunkte für Boards, Tasks und Auth',
-                'status': 'in_progress',
-                'priority': 'urgent',
+                'status': 'in-progress',
+                'priority': 'high',
                 'category': 'User Story',
                 'assignee': guest_user,
                 'reviewer': colleague_user,
@@ -79,7 +79,7 @@ class Command(BaseCommand):
             title='UI Feedback und Review',
             defaults={
                 'description': 'Board-Design und Responsiveness auf verschiedenen Geräten prüfen',
-                'status': 'to_do',
+                'status': 'to-do',
                 'priority': 'low',
                 'category': 'User Story',
                 'assignee': colleague_user,
