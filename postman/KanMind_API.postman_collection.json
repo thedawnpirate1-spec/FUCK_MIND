@@ -554,13 +554,13 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/api/email-check/?email=kevin@kovacsi.de",
+							"raw": "{{base_url}}/api/email-check/?email=guest@example.com",
 							"host": ["{{base_url}}"],
 							"path": ["api", "email-check", ""],
 							"query": [
 								{
 									"key": "email",
-									"value": "kevin@kovacsi.de"
+									"value": "guest@example.com"
 								}
 							]
 						}

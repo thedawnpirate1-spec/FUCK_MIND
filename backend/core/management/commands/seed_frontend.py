@@ -8,29 +8,29 @@ User = get_user_model()
 
 class Command(BaseCommand):
     """
-    Erstellt Demo-Daten für das Frontend inklusive Gast-Account.
+    Populates demo data for testing including a guest account.
     """
-    help = 'Erstellt Demo-Daten für das Frontend inklusive Gast-Account'
+    help = 'Populates demo data for testing including a guest account'
 
     def handle(self, *args, **options):
         guest_user, created = User.objects.get_or_create(
-            email='kevin@kovacsi.de',
+            email='guest@example.com',
             defaults={
-                'username': 'kevin',
-                'first_name': 'Kevin',
-                'last_name': 'Kovacsi',
+                'username': 'guest',
+                'first_name': 'Guest',
+                'last_name': 'User',
                 'color': '#FF7A00'
             }
         )
-        guest_user.set_password('asdasdasd')
+        guest_user.set_password('Password123!')
         guest_user.save()
 
         colleague_user, _ = User.objects.get_or_create(
-            email='erika@example.com',
+            email='colleague@example.com',
             defaults={
-                'username': 'erika',
-                'first_name': 'Erika',
-                'last_name': 'Mustermann',
+                'username': 'colleague',
+                'first_name': 'Colleague',
+                'last_name': 'User',
                 'color': '#9327FF'
             }
         )
@@ -47,9 +47,9 @@ class Command(BaseCommand):
 
         task1, _ = Task.objects.get_or_create(
             board=board,
-            title='Frontend an REST API anbinden',
+            title='Connect frontend to REST API',
             defaults={
-                'description': 'Integration der Backend-Endpunkte für Boards, Tasks und Auth',
+                'description': 'Integrate backend endpoints for boards, tasks, and auth',
                 'status': 'in-progress',
                 'priority': 'high',
                 'category': 'User Story',
@@ -62,9 +62,9 @@ class Command(BaseCommand):
 
         task2, _ = Task.objects.get_or_create(
             board=board,
-            title='Swagger & OpenAPI Doku verifizieren',
+            title='Verify Swagger and OpenAPI documentation',
             defaults={
-                'description': 'Alle Endpunkte in der Swagger UI testen',
+                'description': 'Test all endpoints in Swagger UI',
                 'status': 'done',
                 'priority': 'medium',
                 'category': 'Technical Task',
@@ -76,9 +76,9 @@ class Command(BaseCommand):
 
         task3, _ = Task.objects.get_or_create(
             board=board,
-            title='UI Feedback und Review',
+            title='UI feedback and review',
             defaults={
-                'description': 'Board-Design und Responsiveness auf verschiedenen Geräten prüfen',
+                'description': 'Test board design and responsiveness across devices',
                 'status': 'to-do',
                 'priority': 'low',
                 'category': 'User Story',
@@ -93,7 +93,7 @@ class Command(BaseCommand):
             Comment.objects.create(
                 task=task1,
                 author=colleague_user,
-                content='Die Authentifizierung und Boards funktionieren schon einwandfrei!'
+                content='Authentication and boards are working properly.'
             )
 
-        self.stdout.write(self.style.SUCCESS('Erfolgreich Testdaten für das Frontend initialisiert.'))
+        self.stdout.write(self.style.SUCCESS('Successfully initialized demo data.'))

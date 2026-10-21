@@ -25,8 +25,8 @@ User = get_user_model()
 
 class RegistrationView(APIView):
     """
-    Endpunkt für die Registrierung neuer Benutzer.
-    Erstellt den Benutzer und liefert direkt einen Auth-Token zurück.
+    Endpoint for user registration.
+    Creates user and returns authentication token.
     """
     permission_classes = [AllowAny]
     serializer_class = RegistrationSerializer
@@ -49,8 +49,8 @@ class RegistrationView(APIView):
 
 class LoginView(APIView):
     """
-    Endpunkt für den Login via Username/E-Mail & Passwort.
-    Liefert bei Erfolg den Token und Benutzerdaten zurück.
+    Endpoint for user login via username/email and password.
+    Returns auth token and user profile data on success.
     """
     permission_classes = [AllowAny]
     serializer_class = LoginSerializer
@@ -76,22 +76,25 @@ class LoginView(APIView):
 
 class LogoutView(APIView):
     """
-    Endpunkt für das Abmelden / Token-Inaktivieren.
+    Endpoint for user logout and token deletion.
     """
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(request=None, responses={200: OpenApiResponse(description='Erfolgreich abgemeldet.')})
+    @extend_schema(
+        request=None,
+        responses={200: OpenApiResponse(description='Successfully logged out.')}
+    )
     def post(self, request):
         try:
             request.user.auth_token.delete()
         except Exception:
             pass
-        return Response({'detail': 'Erfolgreich abgemeldet.'}, status=status.HTTP_200_OK)
+        return Response({'detail': 'Successfully logged out.'}, status=status.HTTP_200_OK)
 
 
 class UserProfileView(APIView):
     """
-    Geschützter Endpunkt zum Abrufen der Daten des angemeldeten Benutzers.
+    Protected endpoint to retrieve profile details of the authenticated user.
     """
     permission_classes = [IsAuthenticated]
     serializer_class = UserDetailSerializer
@@ -104,7 +107,7 @@ class UserProfileView(APIView):
 
 class EmailCheckView(APIView):
     """
-    Endpunkt zur Überprüfung von E-Mail-Adressen für Board-Einladungen.
+    Endpoint to check email address availability for board invitations.
     """
     permission_classes = [IsAuthenticated]
 
@@ -112,19 +115,19 @@ class EmailCheckView(APIView):
     def get(self, request):
         email = request.query_params.get('email', '').strip()
         if not email:
-            return Response({'detail': 'E-Mail-Adresse fehlt.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Email parameter is required.'}, status=status.HTTP_400_BAD_REQUEST)
         try:
             user = User.objects.get(email__iexact=email)
             serializer = UserDetailSerializer(user)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except User.DoesNotExist:
-            return Response({'detail': 'Benutzer nicht gefunden.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
 
 class BoardListCreateView(generics.ListCreateAPIView):
     """
-    GET: Liste aller Boards des angemeldeten Benutzers abrufen.
-    POST: Ein neues Board anlegen.
+    GET: List all boards of the authenticated user.
+    POST: Create a new board.
     """
     serializer_class = BoardSerializer
     permission_classes = [IsAuthenticated]
@@ -141,7 +144,7 @@ class BoardListCreateView(generics.ListCreateAPIView):
 
 class BoardDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
-    GET, PATCH, PUT, DELETE für ein einzelnes Board.
+    GET, PATCH, PUT, DELETE for a single board.
     """
     queryset = Board.objects.all()
     serializer_class = BoardSerializer
@@ -150,8 +153,8 @@ class BoardDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class ContactListCreateView(generics.ListCreateAPIView):
     """
-    GET: Liste aller Kontakte abrufen.
-    POST: Einen neuen Kontakt erstellen.
+    GET: List all contacts.
+    POST: Create a new contact.
     """
     queryset = Contact.objects.all().order_by('name')
     serializer_class = ContactSerializer
@@ -160,7 +163,7 @@ class ContactListCreateView(generics.ListCreateAPIView):
 
 class ContactDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
-    GET, PUT, PATCH, DELETE für einzelne Kontakte.
+    GET, PUT, PATCH, DELETE for a single contact.
     """
     queryset = Contact.objects.all()
     serializer_class = ContactSerializer
@@ -169,8 +172,8 @@ class ContactDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class TaskListCreateView(generics.ListCreateAPIView):
     """
-    GET: Liste aller Tasks abrufen mit Unterstützung für Query-Parameter.
-    POST: Einen neuen Task erstellen.
+    GET: List all tasks with filter query parameters.
+    POST: Create a new task.
     """
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
@@ -203,9 +206,9 @@ class TaskListCreateView(generics.ListCreateAPIView):
 
 class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
-    GET: Details eines einzelnen Tasks abrufen.
-    PUT / PATCH: Task bearbeiten.
-    DELETE: Task löschen.
+    GET: Retrieve details of a single task.
+    PUT / PATCH: Update task.
+    DELETE: Delete task.
     """
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
@@ -214,7 +217,7 @@ class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class AssignedTasksView(generics.ListAPIView):
     """
-    GET: Liste aller Tasks abrufen, die dem angemeldeten Benutzer zugewiesen sind.
+    GET: List all tasks assigned to the authenticated user.
     """
     serializer_class = BoardTaskSerializer
     permission_classes = [IsAuthenticated]
@@ -225,7 +228,7 @@ class AssignedTasksView(generics.ListAPIView):
 
 class ReviewingTasksView(generics.ListAPIView):
     """
-    GET: Liste aller Tasks abrufen, bei denen der angemeldete Benutzer Reviewer ist.
+    GET: List all tasks where the authenticated user is reviewer.
     """
     serializer_class = BoardTaskSerializer
     permission_classes = [IsAuthenticated]
@@ -236,8 +239,8 @@ class ReviewingTasksView(generics.ListAPIView):
 
 class TaskCommentListCreateView(generics.ListCreateAPIView):
     """
-    GET: Kommentare eines Tasks abrufen.
-    POST: Neuen Kommentar zu einem Task verfassen.
+    GET: Retrieve comments for a task.
+    POST: Create a new comment on a task.
     """
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated]
@@ -254,7 +257,7 @@ class TaskCommentListCreateView(generics.ListCreateAPIView):
 
 class TaskCommentDetailView(generics.DestroyAPIView):
     """
-    DELETE: Einzelnen Kommentar eines Tasks löschen.
+    DELETE: Delete a single comment from a task.
     """
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated]
@@ -266,8 +269,8 @@ class TaskCommentDetailView(generics.DestroyAPIView):
 
 class SubtaskListCreateView(generics.ListCreateAPIView):
     """
-    GET: Subtasks abrufen (optional filterbar per ?task=<task_id>).
-    POST: Einen neuen Subtask für eine Task erstellen.
+    GET: Retrieve subtasks (filterable by ?task=<task_id>).
+    POST: Create a new subtask for a task.
     """
     serializer_class = SubtaskSerializer
     permission_classes = [IsAuthenticated]
@@ -282,9 +285,9 @@ class SubtaskListCreateView(generics.ListCreateAPIView):
 
 class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
-    GET: Details eines Subtasks abrufen.
-    PUT / PATCH: Subtask bearbeiten (z.B. Checkbox is_completed toggeln).
-    DELETE: Subtask löschen.
+    GET: Retrieve subtask details.
+    PUT / PATCH: Update subtask.
+    DELETE: Delete subtask.
     """
     queryset = Subtask.objects.all()
     serializer_class = SubtaskSerializer
@@ -293,15 +296,15 @@ class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 def custom_404_view(request, exception=None):
     """
-    Globaler 404-Handler für nicht gefundene Routen.
+    Global 404 handler for unknown routes.
     """
     from django.http import JsonResponse
-    return JsonResponse({'detail': 'Die angeforderte Ressource wurde nicht gefunden.'}, status=404)
+    return JsonResponse({'detail': 'The requested resource was not found.'}, status=404)
 
 
 def custom_500_view(request):
     """
-    Globaler 500-Handler für Serverfehler.
+    Global 500 handler for unhandled server errors.
     """
     from django.http import JsonResponse
-    return JsonResponse({'detail': 'Ein interner Serverfehler ist aufgetreten.'}, status=500)
+    return JsonResponse({'detail': 'An internal server error occurred.'}, status=500)

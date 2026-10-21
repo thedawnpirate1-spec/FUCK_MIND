@@ -129,11 +129,13 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# CORS Einstellungen für Frontend-Entwicklung
+# CORS settings for frontend development
 CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True') == 'True'
 cors_allowed = os.getenv('CORS_ALLOWED_ORIGINS', '')
 if cors_allowed:
-    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_allowed.split(',') if origin.strip()]
+    CORS_ALLOWED_ORIGINS = [
+        origin.strip() for origin in cors_allowed.split(',') if origin.strip()
+    ]
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
@@ -148,7 +150,7 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
-# REST Framework Einstellungen
+# REST framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'core.authentication.FlexibleTokenAuthentication',
@@ -161,10 +163,10 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'core.exceptions.custom_exception_handler',
 }
 
-# Swagger / OpenAPI Einstellungen (drf-spectacular)
+# Swagger / OpenAPI settings (drf-spectacular)
 SPECTACULAR_SETTINGS = {
     'TITLE': 'KanMind API',
-    'DESCRIPTION': 'RESTful API für das KanMind Kanban Board Task-Management Backend.',
+    'DESCRIPTION': 'RESTful API for the KanMind Kanban Board task management backend.',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,

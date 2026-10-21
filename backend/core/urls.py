@@ -20,7 +20,7 @@ from .views import (
 )
 
 urlpatterns = [
-    # Authentifizierung & Benutzer
+    # Authentication & Users
     path('auth/register/', RegistrationView.as_view(), name='register'),
     path('registration/', RegistrationView.as_view(), name='registration-frontend'),
     path('auth/login/', LoginView.as_view(), name='login'),
@@ -33,13 +33,13 @@ urlpatterns = [
     path('boards/', BoardListCreateView.as_view(), name='board-list-create'),
     path('boards/<int:pk>/', BoardDetailView.as_view(), name='board-detail'),
 
-    # Tasks Dashboard & Kommentare
+    # Tasks, Dashboard & Comments
     path('tasks/assigned-to-me/', AssignedTasksView.as_view(), name='tasks-assigned-to-me'),
     path('tasks/reviewing/', ReviewingTasksView.as_view(), name='tasks-reviewing'),
     path('tasks/<int:task_id>/comments/', TaskCommentListCreateView.as_view(), name='task-comments'),
     path('tasks/<int:task_id>/comments/<int:pk>/', TaskCommentDetailView.as_view(), name='task-comment-detail'),
 
-    # Kontakte, Tasks & Subtasks
+    # Contacts, Tasks & Subtasks
     path('contacts/', ContactListCreateView.as_view(), name='contact-list-create'),
     path('contacts/<int:pk>/', ContactDetailView.as_view(), name='contact-detail'),
     path('tasks/', TaskListCreateView.as_view(), name='task-list-create'),

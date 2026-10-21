@@ -4,7 +4,7 @@ from rest_framework import exceptions
 
 class FlexibleTokenAuthentication(TokenAuthentication):
     """
-    Unterstützt Token-Authentifizierung sowohl mit 'Token' als auch mit 'Bearer' Präfix.
+    Supports token authentication with both 'Token' and 'Bearer' prefix.
     """
 
     def authenticate(self, request):
@@ -18,13 +18,19 @@ class FlexibleTokenAuthentication(TokenAuthentication):
             return None
 
         if len(auth) == 1:
-            raise exceptions.AuthenticationFailed('Ungültiger Auth-Header. Kein Token übergeben.')
+            raise exceptions.AuthenticationFailed(
+                'Invalid authorization header. No token provided.'
+            )
         elif len(auth) > 2:
-            raise exceptions.AuthenticationFailed('Ungültiger Auth-Header. Token darf keine Leerzeichen enthalten.')
+            raise exceptions.AuthenticationFailed(
+                'Invalid authorization header. Token string should not contain spaces.'
+            )
 
         try:
             token = auth[1].decode('utf-8')
         except UnicodeError:
-            raise exceptions.AuthenticationFailed('Ungültiger Auth-Header. Token enthält ungültige Zeichen.')
+            raise exceptions.AuthenticationFailed(
+                'Invalid authorization header. Token string contains invalid characters.'
+            )
 
         return self.authenticate_credentials(token)

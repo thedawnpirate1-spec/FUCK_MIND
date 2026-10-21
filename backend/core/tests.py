@@ -500,22 +500,22 @@ class ErrorHandlingApiTest(APITestCase):
 
     def test_custom_exception_handler_handles_500(self):
         from .exceptions import custom_exception_handler
-        exc = Exception("Unerwarteter interner Fehler")
+        exc = Exception("Unexpected internal error")
         response = custom_exception_handler(exc, {})
         self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
-        self.assertEqual(response.data.get('detail'), 'Ein interner Serverfehler ist aufgetreten.')
+        self.assertEqual(response.data.get('detail'), 'An internal server error occurred.')
 
     def test_custom_404_view_response(self):
         from .views import custom_404_view
         response = custom_404_view(None)
         self.assertEqual(response.status_code, 404)
-        self.assertIn(b'Die angeforderte Ressource wurde nicht gefunden.', response.content)
+        self.assertIn(b'The requested resource was not found.', response.content)
 
     def test_custom_500_view_response(self):
         from .views import custom_500_view
         response = custom_500_view(None)
         self.assertEqual(response.status_code, 500)
-        self.assertIn(b'Ein interner Serverfehler ist aufgetreten.', response.content)
+        self.assertIn(b'An internal server error occurred.', response.content)
 
 
 class CorsApiTest(APITestCase):
@@ -540,7 +540,7 @@ class CorsApiTest(APITestCase):
 
 class AuthHeaderIntegrationTest(APITestCase):
     """
-    Tests für flexible Auth-Header (Bearer, Token, Case-Insensitive, Fehlerbehandlung).
+    Tests for flexible auth headers (Bearer, Token, case-insensitive, error handling).
     """
 
     def setUp(self):
@@ -585,7 +585,7 @@ class AuthHeaderIntegrationTest(APITestCase):
 
 class PayloadEdgeCasesTest(APITestCase):
     """
-    Tests für Randfälle bei Payloads (verschachtelte Subtasks, leere Daten, Whitespace).
+    Tests for payload edge cases (nested subtasks, empty fields, whitespace).
     """
 
     def setUp(self):
@@ -679,7 +679,7 @@ class PayloadEdgeCasesTest(APITestCase):
 
 class SwaggerApiDocumentationTest(APITestCase):
     """
-    Tests für OpenAPI-Schema- und Swagger-UI-Endpunkte.
+    Tests for OpenAPI schema and Swagger UI endpoints.
     """
 
     def test_schema_endpoint_returns_200(self):
@@ -697,7 +697,7 @@ class SwaggerApiDocumentationTest(APITestCase):
 
 class FrontendIntegrationTest(APITestCase):
     """
-    Tests für Frontend-Endpunkte (Registration/Login mit Fullname, Email-Check, Boards, Kommentare, Dashboard).
+    Tests for frontend endpoints (registration/login with full name, email check, boards, comments, dashboard).
     """
 
     def setUp(self):

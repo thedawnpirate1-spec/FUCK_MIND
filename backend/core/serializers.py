@@ -9,7 +9,7 @@ User = get_user_model()
 
 class UserDetailSerializer(serializers.ModelSerializer):
     """
-    Serializer für die Profildaten des angemeldeten Benutzers.
+    Serializer for authenticated user profile data.
     """
     user_id = serializers.IntegerField(source='id', read_only=True)
     fullname = serializers.CharField(read_only=True)
@@ -21,7 +21,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
 class ContactSerializer(serializers.ModelSerializer):
     """
-    Serializer für Kontakte mit automatischer Bereinigung von Leerzeichen.
+    Serializer for contacts with automatic whitespace trimming.
     """
     class Meta:
         model = Contact
@@ -37,7 +37,7 @@ class ContactSerializer(serializers.ModelSerializer):
 
 class SubtaskSerializer(serializers.ModelSerializer):
     """
-    Serializer für Subtasks, nutzbar als Einzelendpunkt oder verschachtelt.
+    Serializer for subtasks, usable standalone or nested.
     """
     id = serializers.IntegerField(required=False)
 
@@ -51,21 +51,31 @@ class SubtaskSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         if not self.parent and 'task' not in attrs and not self.instance:
-            raise serializers.ValidationError({"task": "Dieses Feld ist erforderlich."})
+            raise serializers.ValidationError({"task": "This field is required."})
         return attrs
 
 
 class TaskSerializer(serializers.ModelSerializer):
     """
-    Serializer für Tasks inklusive verschachtelter Subtasks, Assignees und Reviewern.
+    Serializer for tasks including nested subtasks, assignees, and reviewers.
     """
     assigned_to_details = ContactSerializer(source='assigned_to', many=True, read_only=True)
     assigned_to = serializers.PrimaryKeyRelatedField(many=True, queryset=Contact.objects.all(), required=False)
     subtasks = SubtaskSerializer(many=True, required=False)
     assignee = UserDetailSerializer(read_only=True)
     reviewer = UserDetailSerializer(read_only=True)
-    assignee_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), source='assignee', required=False, allow_null=True)
-    reviewer_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), source='reviewer', required=False, allow_null=True)
+    assignee_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        source='assignee',
+        required=False,
+        allow_null=True
+    )
+    reviewer_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        source='reviewer',
+        required=False,
+        allow_null=True
+    )
     comments_count = serializers.IntegerField(read_only=True)
     board = serializers.PrimaryKeyRelatedField(queryset=Board.objects.all(), required=False, allow_null=True)
 
@@ -151,7 +161,7 @@ class TaskSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     """
-    Serializer für Task-Kommentare.
+    Serializer for task comments.
     """
     author = serializers.CharField(source='author.fullname', read_only=True)
 
@@ -163,10 +173,9 @@ class CommentSerializer(serializers.ModelSerializer):
 
 class BoardTaskSerializer(TaskSerializer):
     """
-    Serializer für Tasks mit Frontend-kompatiblen Status- und Prioritätsbezeichnungen.
+    Serializer for tasks with frontend-compatible status and priority representations.
     """
     def to_representation(self, instance):
-        data = super().to_representation(instance)
         status_map = {
             'to_do': 'to-do',
             'in_progress': 'in-progress',
@@ -175,6 +184,7 @@ class BoardTaskSerializer(TaskSerializer):
         prio_map = {
             'urgent': 'high',
         }
+        data = super().to_representation(instance)
         if data.get('status') in status_map:
             data['status'] = status_map[data['status']]
         if data.get('priority') in prio_map:
@@ -184,7 +194,7 @@ class BoardTaskSerializer(TaskSerializer):
 
 class BoardSerializer(serializers.ModelSerializer):
     """
-    Serializer für Boards mit Mitgliedern und zugehörigen Tasks.
+    Serializer for boards with members and associated tasks.
     """
     members = UserDetailSerializer(many=True, read_only=True)
     tasks = BoardTaskSerializer(many=True, read_only=True)
@@ -240,7 +250,7 @@ class BoardSerializer(serializers.ModelSerializer):
 
 class RegistrationSerializer(serializers.ModelSerializer):
     """
-    Serializer für die Benutzerregistrierung mit Passwort-Validierung und optionalem Fullname.
+    Serializer for user registration with password validation and optional full name.
     """
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     repeated_password = serializers.CharField(write_only=True, required=True)
@@ -248,7 +258,10 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'repeated_password', 'first_name', 'last_name', 'fullname', 'color']
+        fields = [
+            'username', 'email', 'password', 'repeated_password',
+            'first_name', 'last_name', 'fullname', 'color'
+        ]
         extra_kwargs = {
             'username': {'required': False},
             'first_name': {'required': False, 'allow_blank': True},
@@ -258,7 +271,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         if attrs['password'] != attrs['repeated_password']:
-            raise serializers.ValidationError({"password": "Die Passwörter stimmen nicht überein."})
+            raise serializers.ValidationError({"password": "Passwords do not match."})
 
         if not attrs.get('username') and attrs.get('email'):
             base_username = attrs['email'].split('@')[0]
@@ -293,7 +306,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
 class LoginSerializer(serializers.Serializer):
     """
-    Serializer für den Benutzer-Login via Benutzername oder E-Mail.
+    Serializer for user login via username or email.
     """
     username = serializers.CharField(required=False, allow_blank=True)
     email = serializers.EmailField(required=False, allow_blank=True)
@@ -305,21 +318,21 @@ class LoginSerializer(serializers.Serializer):
         password = attrs.get('password')
 
         if not username and not email:
-            raise serializers.ValidationError("Bitte gib einen Benutzernamen oder eine E-Mail-Adresse an.")
+            raise serializers.ValidationError("Please provide a username or an email address.")
 
         if email and not username:
             try:
                 user_obj = User.objects.get(email__iexact=email)
                 username = user_obj.username
             except User.DoesNotExist:
-                raise serializers.ValidationError("Ungültige Anmeldedaten.")
+                raise serializers.ValidationError("Invalid credentials.")
 
         user = authenticate(username=username, password=password)
 
         if not user:
-            raise serializers.ValidationError("Ungültige Anmeldedaten.")
+            raise serializers.ValidationError("Invalid credentials.")
         if not user.is_active:
-            raise serializers.ValidationError("Benutzerkonto ist deaktiviert.")
+            raise serializers.ValidationError("User account is disabled.")
 
         attrs['user'] = user
         return attrs

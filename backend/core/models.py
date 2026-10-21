@@ -4,7 +4,7 @@ from django.db import models
 
 class CustomUser(AbstractUser):
     """
-    Erweitertes User-Modell für KanMind.
+    Extended user model for KanMind.
     """
     email = models.EmailField(unique=True)
     color = models.CharField(max_length=7, default='#FF7A00', help_text="Hex color for user badge")
@@ -20,7 +20,7 @@ class CustomUser(AbstractUser):
 
 class Contact(models.Model):
     """
-    Kontakt-Modell für KanMind Board-Assignees.
+    Contact model for KanMind board assignees.
     """
     name = models.CharField(max_length=150)
     email = models.EmailField()
@@ -34,11 +34,17 @@ class Contact(models.Model):
 
 class Board(models.Model):
     """
-    Board-Modell zur Gruppierung von Tasks und Mitgliedern.
+    Board model for grouping tasks and members.
     """
     title = models.CharField(max_length=150)
     members = models.ManyToManyField(CustomUser, related_name='boards', blank=True)
-    owner = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='owned_boards', null=True, blank=True)
+    owner = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='owned_boards',
+        null=True,
+        blank=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -48,7 +54,7 @@ class Board(models.Model):
 
 class Task(models.Model):
     """
-    Task-Modell für KanMind Kanban Board.
+    Task model for KanMind Kanban board.
     """
     PRIORITY_CHOICES = [
         ('low', 'Low'),
@@ -67,17 +73,41 @@ class Task(models.Model):
         ('done', 'Done'),
     ]
 
-    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='tasks', null=True, blank=True)
+    board = models.ForeignKey(
+        Board,
+        on_delete=models.CASCADE,
+        related_name='tasks',
+        null=True,
+        blank=True
+    )
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, default='')
     due_date = models.DateField(null=True, blank=True)
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='to_do')
     category = models.CharField(max_length=100, blank=True, default='User Story')
-    assignee = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_tasks')
-    reviewer = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewing_tasks')
+    assignee = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_tasks'
+    )
+    reviewer = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewing_tasks'
+    )
     assigned_to = models.ManyToManyField(Contact, blank=True, related_name='tasks')
-    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_tasks')
+    created_by = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_tasks'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -91,7 +121,7 @@ class Task(models.Model):
 
 class Subtask(models.Model):
     """
-    Subtask-Modell für KanMind Tasks.
+    Subtask model for KanMind tasks.
     """
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='subtasks')
     title = models.CharField(max_length=255)
@@ -104,7 +134,7 @@ class Subtask(models.Model):
 
 class Comment(models.Model):
     """
-    Kommentar-Modell für Diskussionen innerhalb von Tasks.
+    Comment model for discussions within tasks.
     """
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='comments')
     author = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='comments')
