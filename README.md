@@ -1,215 +1,264 @@
 # KanMind Backend
 
-Backend REST API für die KanMind Kanban Board Anwendung, gebaut mit Django und Django REST Framework.
+Backend REST API for the KanMind Kanban Board application, built with Django and Django REST Framework.
 
-## Setup und lokaler Start
+## Setup and Local Development
 
-1. Virtuelle Umgebung aktivieren und Abhängigkeiten installieren:
-   ```bash
-   cd backend
-   .\venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
+Follow these steps to set up and run the backend locally from scratch.
 
-2. Umgebungsvariablen anlegen:
-   Erstelle eine `.env` Datei im Ordner `backend/` basierend auf `.env.example`:
-   ```env
-   SECRET_KEY=dein-geheimer-schluessel
-   DEBUG=True
-   ALLOWED_HOSTS=127.0.0.1,localhost
-   CORS_ALLOW_ALL_ORIGINS=True
-   ```
+### 1. Clone the repository
+```bash
+git clone https://github.com/thedawnpirate1-spec/FUCK_MIND.git
+cd FUCK_MIND
+```
 
-3. Datenbank-Migrationen ausführen:
-   ```bash
-   python manage.py migrate
-   ```
+### 2. Navigate to the backend directory
+```bash
+cd backend
+```
 
-4. Lokalen Entwicklungsserver starten:
-   ```bash
-   python manage.py runserver
-   ```
+### 3. Create and activate a virtual environment
+Create a virtual environment:
+```bash
+python -m venv venv
+```
 
-5. Test-Suite ausführen:
-   ```bash
-   python manage.py test
-   ```
+Activate the virtual environment:
+* On Windows (PowerShell):
+  ```powershell
+  .\venv\Scripts\activate
+  ```
+* On Windows (Command Prompt):
+  ```cmd
+  .\venv\Scripts\activate.bat
+  ```
+* On macOS / Linux:
+  ```bash
+  source venv/bin/activate
+  ```
 
-## Interaktive API Dokumentation
+### 4. Install dependencies
+```bash
+pip install -r requirements.txt
+```
 
-Nach dem Start des Entwicklungsservers stehen folgende Dokumentations-Tools zur Verfügung:
+### 5. Configure environment variables
+Create a `.env` file in the `backend/` directory by copying the example file:
+* On Windows:
+  ```cmd
+  copy .env.example .env
+  ```
+* On macOS / Linux:
+  ```bash
+  cp .env.example .env
+  ```
 
-* **Swagger UI:** `http://127.0.0.1:8000/api/docs/` (Interaktives Testen aller Endpunkte direkt im Browser)
-* **ReDoc:** `http://127.0.0.1:8000/api/redoc/` (Strukturierte technische Spezifikation)
+The `.env.example` file contains pre-configured defaults for local development.
+
+### 6. Run database migrations
+```bash
+python manage.py migrate
+```
+
+### 7. (Optional) Create an admin superuser and seed demo data
+Create an administrative user:
+```bash
+python manage.py createsuperuser
+```
+
+Initialize sample boards, tasks, and users for testing:
+```bash
+python manage.py seed_frontend
+```
+
+### 8. Run the test suite
+Verify that all unit and integration tests pass:
+```bash
+python manage.py test
+```
+
+### 9. Start the development server
+```bash
+python manage.py runserver
+```
+The API is now running at `http://127.0.0.1:8000/`.
+
+## Interactive API Documentation
+
+Once the development server is running, the following interactive documentation tools are available:
+
+* **Swagger UI:** `http://127.0.0.1:8000/api/docs/` (Interactive API explorer and testing tool)
+* **ReDoc:** `http://127.0.0.1:8000/api/redoc/` (Structured technical specification)
 * **OpenAPI Schema (JSON/YAML):** `http://127.0.0.1:8000/api/schema/`
-* **Postman Collection:** Die Datei `postman/KanMind_API.postman_collection.json` kann direkt in Postman importiert werden.
+* **Postman Collection:** The collection file is located at `postman/KanMind_API.postman_collection.json` and can be imported directly into Postman.
 
-## API Endpunkte Übersicht
+## API Endpoints Overview
 
-### Authentifizierung
+### Authentication
 
-| Methode | Endpunkt | Schutz | Beschreibung |
+| Method | Endpoint | Protection | Description |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/auth/register/` | Öffentlich | Registrierung eines neuen Benutzers, liefert Auth-Token |
-| `POST` | `/api/auth/login/` | Öffentlich | Login via Username/E-Mail und Passwort |
-| `POST` | `/api/auth/logout/` | Token / Bearer | Abmelden und Löschen des aktiven Tokens |
-| `GET` | `/api/auth/user/` | Token / Bearer | Profildaten des angemeldeten Benutzers abrufen |
+| `POST` | `/api/auth/register/` | Public | Register a new user and return an auth token |
+| `POST` | `/api/auth/login/` | Public | Login via username or email and password |
+| `POST` | `/api/auth/logout/` | Token / Bearer | Log out and delete active authentication token |
+| `GET` | `/api/auth/user/` | Token / Bearer | Retrieve profile data of authenticated user |
 
-### Kontakte
+### Contacts
 
-| Methode | Endpunkt | Schutz | Beschreibung |
+| Method | Endpoint | Protection | Description |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/contacts/` | Token / Bearer | Liste aller Kontakte abrufen |
-| `POST` | `/api/contacts/` | Token / Bearer | Neuen Kontakt anlegen |
-| `GET` | `/api/contacts/<id>/` | Token / Bearer | Einzelnen Kontakt abrufen |
-| `PUT` / `PATCH` | `/api/contacts/<id>/` | Token / Bearer | Kontakt bearbeiten |
-| `DELETE` | `/api/contacts/<id>/` | Token / Bearer | Kontakt löschen |
+| `GET` | `/api/contacts/` | Token / Bearer | Retrieve list of all contacts |
+| `POST` | `/api/contacts/` | Token / Bearer | Create a new contact |
+| `GET` | `/api/contacts/<id>/` | Token / Bearer | Retrieve single contact details |
+| `PUT` / `PATCH` | `/api/contacts/<id>/` | Token / Bearer | Update a contact |
+| `DELETE` | `/api/contacts/<id>/` | Token / Bearer | Delete a contact |
 
 ### Tasks (Kanban Board)
 
-| Methode | Endpunkt | Schutz | Beschreibung |
+| Method | Endpoint | Protection | Description |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/tasks/` | Token / Bearer | Tasks abrufen (Filter: `status`, `priority`, `search`, `assigned_to`) |
-| `POST` | `/api/tasks/` | Token / Bearer | Task erstellen (inklusive verschachtelter Subtasks) |
-| `GET` | `/api/tasks/<id>/` | Token / Bearer | Task-Details inklusive Assignees und Subtasks abrufen |
-| `PUT` / `PATCH` | `/api/tasks/<id>/` | Token / Bearer | Task bearbeiten (z.B. Drag & Drop Statuswechsel, Priorität) |
-| `DELETE` | `/api/tasks/<id>/` | Token / Bearer | Task löschen (kaskadiert zugehörige Subtasks) |
+| `GET` | `/api/tasks/` | Token / Bearer | Retrieve tasks (filter by `status`, `priority`, `search`, `assigned_to`, `board`) |
+| `POST` | `/api/tasks/` | Token / Bearer | Create a task (supports nested subtasks) |
+| `GET` | `/api/tasks/<id>/` | Token / Bearer | Retrieve task details including subtasks, assignees, and reviewer |
+| `PUT` / `PATCH` | `/api/tasks/<id>/` | Token / Bearer | Update task (status transitions, priority, assignees) |
+| `DELETE` | `/api/tasks/<id>/` | Token / Bearer | Delete task (cascades associated subtasks) |
 
 ### Subtasks
 
-| Methode | Endpunkt | Schutz | Beschreibung |
+| Method | Endpoint | Protection | Description |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/subtasks/` | Token / Bearer | Subtasks abrufen (filterbar mit `?task=<task_id>`) |
-| `POST` | `/api/subtasks/` | Token / Bearer | Subtask für einen Task erstellen |
-| `GET` | `/api/subtasks/<id>/` | Token / Bearer | Einzelnen Subtask abrufen |
-| `PUT` / `PATCH` | `/api/subtasks/<id>/` | Token / Bearer | Subtask bearbeiten (z.B. Status `is_completed` toggeln) |
-| `DELETE` | `/api/subtasks/<id>/` | Token / Bearer | Subtask löschen |
+| `GET` | `/api/subtasks/` | Token / Bearer | Retrieve subtasks (filterable with `?task=<task_id>`) |
+| `POST` | `/api/subtasks/` | Token / Bearer | Create a subtask for a task |
+| `GET` | `/api/subtasks/<id>/` | Token / Bearer | Retrieve single subtask details |
+| `PUT` / `PATCH` | `/api/subtasks/<id>/` | Token / Bearer | Update subtask (toggle `is_completed` status) |
+| `DELETE` | `/api/subtasks/<id>/` | Token / Bearer | Delete a subtask |
 
-### Boards & Kommentare (Frontend-Integration)
+### Boards and Comments
 
-| Methode | Endpunkt | Schutz | Beschreibung |
+| Method | Endpoint | Protection | Description |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/boards/` | Token / Bearer | Liste aller Boards des Benutzers (inkl. Member-/Ticket-Zähler) |
-| `POST` | `/api/boards/` | Token / Bearer | Neues Board mit Mitgliedern anlegen |
-| `GET` | `/api/boards/<id>/` | Token / Bearer | Board-Details inklusive verknüpfter Tasks und Mitglieder abrufen |
-| `PUT` / `PATCH` | `/api/boards/<id>/` | Token / Bearer | Board bearbeiten (Titel, Mitgliederliste) |
-| `DELETE` | `/api/boards/<id>/` | Token / Bearer | Board löschen |
-| `GET` | `/api/tasks/assigned-to-me/` | Token / Bearer | Eigene zugewiesene Tasks für das Dashboard abrufen |
-| `GET` | `/api/tasks/reviewing/` | Token / Bearer | Tasks im Review für das Dashboard abrufen |
-| `GET` | `/api/email-check/` | Token / Bearer | E-Mail-Adresse für Board-Einladungen prüfen (`?email=...`) |
-| `GET` | `/api/tasks/<id>/comments/` | Token / Bearer | Kommentare eines Tasks abrufen |
-| `POST` | `/api/tasks/<id>/comments/` | Token / Bearer | Neuen Kommentar zu einem Task erstellen |
-| `DELETE` | `/api/tasks/<task_id>/comments/<id>/` | Token / Bearer | Eigenen Kommentar löschen |
+| `GET` | `/api/boards/` | Token / Bearer | List all boards for the authenticated user |
+| `POST` | `/api/boards/` | Token / Bearer | Create a new board with members |
+| `GET` | `/api/boards/<id>/` | Token / Bearer | Retrieve board details with linked tasks and members |
+| `PUT` / `PATCH` | `/api/boards/<id>/` | Token / Bearer | Update board title and member list |
+| `DELETE` | `/api/boards/<id>/` | Token / Bearer | Delete a board |
+| `GET` | `/api/tasks/assigned-to-me/` | Token / Bearer | Retrieve tasks assigned to current user for dashboard |
+| `GET` | `/api/tasks/reviewing/` | Token / Bearer | Retrieve tasks in review for current user |
+| `GET` | `/api/email-check/` | Token / Bearer | Check user availability for board invitations (`?email=...`) |
+| `GET` | `/api/tasks/<id>/comments/` | Token / Bearer | Retrieve comments for a task |
+| `POST` | `/api/tasks/<id>/comments/` | Token / Bearer | Create a comment on a task |
+| `DELETE` | `/api/tasks/<task_id>/comments/<id>/` | Token / Bearer | Delete comment by author |
 
-## Deployment Leitfaden
+## Frontend Integration
 
-Für das Ausrollen in einer Produktivumgebung (z.B. Linux VPS, Render, Railway, Heroku) sind folgende Schritte zu beachten:
+This repository contains the backend service. It is designed to work with decoupled frontend applications, such as the Developer Akademie KanMind client or custom web applications.
 
-1. **Sicherheit und Umgebungsvariablen:**
-   * Setze `DEBUG=False` in der `.env` Datei.
-   * Vergib einen sicheren, zufällig generierten `SECRET_KEY`.
-   * Trage die Produktions-Domains in `ALLOWED_HOSTS` ein (z.B. `ALLOWED_HOSTS=api.kanmind.de,kanmind.de`).
-   * Begrenze CORS auf deine Frontend-URL: `CORS_ALLOW_ALL_ORIGINS=False` und `CORS_ALLOWED_ORIGINS=https://kanmind.de`.
+To connect a frontend:
+1. Ensure the backend server is running at `http://127.0.0.1:8000`.
+2. Configure your frontend API base URL to `http://127.0.0.1:8000`.
+3. If connecting from another port or domain, add the origin to `CORS_ALLOWED_ORIGINS` in your `.env` file.
 
-2. **Produktions-Webserver (WSGI/ASGI):**
-   * Verwende einen Application Server wie Gunicorn oder Uvicorn:
+## Production Deployment Guidelines
+
+When deploying to a production environment (such as a Linux VPS, Render, Railway, or Heroku), consider the following configuration checklist:
+
+1. **Security and Environment Variables:**
+   * Set `DEBUG=False` in your production `.env` file.
+   * Generate a random, cryptographically secure `SECRET_KEY`.
+   * Configure allowed domains in `ALLOWED_HOSTS` (e.g. `ALLOWED_HOSTS=api.example.com,example.com`).
+   * Restrict CORS origin domains: `CORS_ALLOW_ALL_ORIGINS=False` and `CORS_ALLOWED_ORIGINS=https://your-frontend-domain.com`.
+
+2. **Production Application Server (WSGI / ASGI):**
+   * Use an application server such as Gunicorn or Uvicorn:
      ```bash
      pip install gunicorn
      gunicorn kanmind_backend.wsgi:application --bind 0.0.0.0:8000
      ```
 
-3. **Statische Dateien:**
-   * Sammle statische Dateien (Admin, Swagger UI) für den Webserver:
+3. **Static File Handling:**
+   * Collect static assets for admin interface and Swagger UI:
      ```bash
      python manage.py collectstatic --noinput
      ```
-   * Für einfaches Bereitstellen statischer Dateien kann WhiteNoise verwendet oder ein Nginx Reverse Proxy davor geschaltet werden.
+   * Serve static files via WhiteNoise or a reverse proxy such as Nginx.
 
-4. **Produktions-Datenbank:**
-   * Für Produktivbetrieb wird PostgreSQL empfohlen:
+4. **Production Database:**
+   * PostgreSQL is recommended for production environments:
      ```bash
      pip install psycopg2-binary
      ```
-   * Passe `DATABASES` in `settings.py` an oder binde die Verbindungs-URL über `dj-database-url` an.
+   * Configure `DATABASES` in `settings.py` or provide the connection string via environment variables.
 
-## Bisherige Schritte (14-Tage Roadmap)
+## Project History (14-Day Roadmap)
 
-### Tag 1: Projekt-Setup
-* Django Projekt initialisiert mit DRF und CORS Headers
-* Einstellungen für `.env` und `requirements.txt` aufgesetzt
+### Day 1: Project Setup
+* Initialized Django project with Django REST Framework and CORS headers
+* Configured `.env` loader and `requirements.txt`
 
-### Tag 2: Custom User Modell
-* App `core` erstellt
-* `CustomUser` Modell angelegt mit `email` (unique) und `color` (Avatar-Farbe)
-* `AUTH_USER_MODEL` in `settings.py` konfiguriert und Admin angepasst
-* Migrationen erstellt und auf SQLite angewendet
+### Day 2: Custom User Model
+* Created `core` application
+* Implemented `CustomUser` model with unique email and avatar color field
+* Configured `AUTH_USER_MODEL` in settings and registered model in admin
+* Created and applied initial database migrations
 
-### Tag 3: User Registrierung
-* `RegistrationSerializer` mit Passwort-Abgleich und Validierung erstellt
-* `RegistrationView` unter `/api/auth/register/` integriert (gibt Token direkt zurück)
+### Day 3: User Registration
+* Implemented `RegistrationSerializer` with password confirmation and validation
+* Added `RegistrationView` at `/api/auth/register/` returning auth tokens directly
 
-### Tag 4: Login & Logout
-* `LoginSerializer` für Anmeldung via Username oder E-Mail implementiert
-* `LoginView` (`/api/auth/login/`) und `LogoutView` (`/api/auth/logout/`) gebaut
-* Unit- und Integrationstests in `core/tests.py` hinzugefügt
+### Day 4: Login and Logout
+* Implemented `LoginSerializer` supporting login via username or email
+* Built `LoginView` and `LogoutView` endpoints
+* Added test cases in `core/tests.py`
 
-### Tag 5: Protected Routes & Profil-Endpunkt
-* `UserDetailSerializer` zur sauberen Formatierung der Benutzerdaten angelegt
-* `UserProfileView` (`GET /api/auth/user/`) mit `IsAuthenticated` Permission Guard erstellt
-* Integrationstests für gültige und ungültige/fehlende Tokens in `core/tests.py` ergänzt
+### Day 5: Protected Routes and User Profile
+* Implemented `UserDetailSerializer` for profile serialization
+* Created `UserProfileView` guarded with `IsAuthenticated` permission
+* Added integration tests for valid, invalid, and missing tokens
 
-### Tag 6: Contacts Endpunkte & Modell
-* `Contact` Modell (`name`, `email`, `phone`, `color`, `created_at`) in `core/models.py` erstellt
-* Migration `0002_contact` erstellt und angewendet
-* `ContactSerializer` sowie CRUD Endpunkte (`ContactListCreateView`, `ContactDetailView`) gebaut
-* Integrationstests für Kontakt-Erstellung, Liste, Update und Löschung in `core/tests.py` hinterlegt
+### Day 6: Contact Management
+* Created `Contact` model with fields for name, email, phone, and color
+* Built `ContactSerializer` and CRUD views (`ContactListCreateView`, `ContactDetailView`)
+* Added test coverage for contact creation, listing, updating, and deletion
 
-### Tag 7: Task Modell & Erstellung (`POST /api/tasks/`)
-* `Task` Modell (`title`, `description`, `due_date`, `priority`, `status`, `category`, `assigned_to`, `created_by`) in `core/models.py` angelegt
-* Migration `0003_task` generiert und angewendet
-* `TaskSerializer` (mit geschachtelter `assigned_to_details` Ausgabe) & `TaskListCreateView` implementiert
-* Integrationstests für Task-Erstellung & Zuordnung von Kontakten in `core/tests.py` hinzugefügt
+### Day 7: Task Model and Creation
+* Created `Task` model supporting titles, descriptions, due dates, priorities, categories, and contacts
+* Built `TaskSerializer` with nested details and `TaskListCreateView`
+* Added tests for task creation and contact assignment
 
-### Tag 8: Task Filtering (`GET /api/tasks/`)
-* Dynamic filtering in `TaskListCreateView` via Query Parameters implementiert (`?status=`, `?priority=`, `?search=`, `?assigned_to=`)
-* Unit-Tests für alle Filtervariablen in `core/tests.py` hinzugefügt
+### Day 8: Task Filtering
+* Added query parameter filtering in `TaskListCreateView` (`status`, `priority`, `search`, `assigned_to`, `board`)
+* Added unit test cases for filter parameters
 
-### Tag 9: Task Updates (`PUT / PATCH /api/tasks/<id>/`)
-* `TaskDetailView` unter `/api/tasks/<id>/` bereitgestellt
-* Unterstützung für partial updates (`PATCH`) für Drag & Drop Statusübergänge und Prioritätsänderungen
-* Unit-Tests für `GET`, `PUT` und `PATCH` in `core/tests.py` ergänzt
+### Day 9: Task Updates
+* Implemented `TaskDetailView` supporting `PUT` and `PATCH` requests
+* Added support for status transitions and partial updates
+* Added test cases for update operations
 
-### Tag 10: Subtasks CRUD & Checkbox-State Persistenz (`/api/subtasks/`)
-* `Subtask` Modell (`task`, `title`, `is_completed`, `created_at`) in `core/models.py` angelegt
-* Migration `0004_subtask` generiert und angewendet
-* `SubtaskSerializer`, `SubtaskListCreateView` und `SubtaskDetailView` erstellt
-* Subtasks in `TaskSerializer` geschachtelt als `subtasks` Feld eingebunden
-* Unit-Tests für Subtask-Erstellung, Filtering nach Task ID, Checkbox State-Toggling und geschachtelte Task-Ausgabe in `core/tests.py` hinzugefügt
+### Day 10: Subtasks Management
+* Created `Subtask` model with completion state persistence
+* Built `SubtaskSerializer`, `SubtaskListCreateView`, and `SubtaskDetailView`
+* Integrated nested subtask serialization into `TaskSerializer`
+* Added test cases for subtask lifecycle and task nesting
 
-### Tag 11: Task Deletion & Cascade Cleanups (`DELETE /api/tasks/<id>/`)
-* `TaskDetailView` Deletion-Flow (`DELETE /api/tasks/<id>/`) mit Statuscode `204 NO CONTENT` verifiziert
-* Automatische Kaskadierung auf verknüpfte Subtasks sichergestellt
-* Datenintegrität abgesichert: Weder zugewiesene Kontakte noch der Ersteller werden beim Löschen des Tasks entfernt
-* Subtask-Löschung ohne Nebeneffekte auf den übergeordneten Task verifiziert
-* Integrationstests in `core/tests.py` hinzugefügt
+### Day 11: Task Deletion and Cascade Handling
+* Verified `TaskDetailView` deletion flow returning `204 NO CONTENT`
+* Verified cascade deletion of associated subtasks while preserving assigned contacts
+* Added integration tests for cascading deletion
 
-### Tag 12: Globales Error Handling, Statuscodes & CORS Policies
-* Zentralen `custom_exception_handler` in `core/exceptions.py` implementiert und in `REST_FRAMEWORK` registriert
-* Einheitliche JSON-Fehlerausgaben für 400, 401, 403, 404 und unerwartete 500er Serverfehler
-* Django Root-Handler `handler404` und `handler500` in `kanmind_backend/urls.py` auf JSON-Responses umgestellt
-* CORS Policies gehärtet: Dynamische Steuerung via `.env`, Credentials-Support und explizite Header
-* Umfassende Integrationstests für Error Handling & CORS in `core/tests.py` ergänzt
+### Day 12: Global Error Handling and CORS Policies
+* Implemented central `custom_exception_handler` in `core/exceptions.py`
+* Standardized JSON error responses for 400, 401, 403, 404, and 500 status codes
+* Configured custom 404 and 500 handlers returning JSON payloads
+* Added configurable CORS policies with credentials support
 
-### Tag 13: Endpunkt-Integrationstests & Randfall-Absicherung
-* `FlexibleTokenAuthentication` in `core/authentication.py` implementiert (unterstützt 'Token' und 'Bearer' Header flexibel und case-insensitiv)
-* `TaskSerializer` um verschachtelte Erstellung von Subtasks erweitert (`create` und `update`)
-* Payload-Randfälle abgesichert: Leerstrings bei Datumsfeldern (`due_date`), `null`-Werte bei `assigned_to`, Whitespace-Trimming und Normalisierung bei Status und Priorität
-* Postman Collection in `postman/KanMind_API.postman_collection.json` für alle Endpunkte hinterlegt
-* Integrationstests in `core/tests.py` für Header und Payload-Randfälle hinzugefügt
+### Day 13: Authentication Headers and Edge Cases
+* Implemented `FlexibleTokenAuthentication` supporting both `Token` and `Bearer` prefixes
+* Added nested creation and updates for subtasks within task payloads
+* Handled edge cases: empty date strings, null contacts, whitespace trimming, and status normalization
+* Created Postman collection covering all endpoints
 
-### Tag 14: Swagger/OpenAPI Doku, Code Cleanup & Deployment-Vorbereitung
-* `drf-spectacular` integriert und in `requirements.txt` hinterlegt
-* Interaktive Swagger UI (`/api/docs/`), ReDoc (`/api/redoc/`) und Schema-Endpunkt (`/api/schema/`) bereitgestellt
-* Schema-Validierung für alle Views und Serializer optimiert (inklusive Auth-Views via `@extend_schema`)
-* Tests für Dokumentations-Endpunkte in `core/tests.py` ergänzt (alle 61 Tests bestanden)
-* `README.md` um Deployment-Leitfaden, Sicherheits-Checkliste und Dokumentations-Links erweitert
+### Day 14: Swagger and OpenAPI Documentation
+* Integrated `drf-spectacular` for OpenAPI 3 schema generation
+* Added interactive Swagger UI at `/api/docs/` and ReDoc at `/api/redoc/`
+* Verified documentation endpoints and complete test suite (all 68 tests passing)
+* Prepared deployment guidelines and documentation
