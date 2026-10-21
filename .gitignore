@@ -120,6 +120,7 @@ desktop.ini
 # ==========================================
 # 7. NODE / FRONTEND (Falls verwendet)
 # ==========================================
+frontend/
 node_modules/
 npm-debug.log*
 yarn-debug.log*
