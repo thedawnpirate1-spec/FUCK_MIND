@@ -16,7 +16,10 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['user_id', 'id', 'username', 'email', 'first_name', 'last_name', 'fullname', 'color']
+        fields = [
+            'user_id', 'id', 'username', 'email',
+            'first_name', 'last_name', 'fullname', 'color'
+        ]
 
 
 class ContactSerializer(serializers.ModelSerializer):
@@ -60,7 +63,9 @@ class TaskSerializer(serializers.ModelSerializer):
     Serializer for tasks including nested subtasks, assignees, and reviewers.
     """
     assigned_to_details = ContactSerializer(source='assigned_to', many=True, read_only=True)
-    assigned_to = serializers.PrimaryKeyRelatedField(many=True, queryset=Contact.objects.all(), required=False)
+    assigned_to = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Contact.objects.all(), required=False
+    )
     subtasks = SubtaskSerializer(many=True, required=False)
     assignee = UserDetailSerializer(read_only=True)
     reviewer = UserDetailSerializer(read_only=True)
@@ -77,7 +82,9 @@ class TaskSerializer(serializers.ModelSerializer):
         allow_null=True
     )
     comments_count = serializers.IntegerField(read_only=True)
-    board = serializers.PrimaryKeyRelatedField(queryset=Board.objects.all(), required=False, allow_null=True)
+    board = serializers.PrimaryKeyRelatedField(
+        queryset=Board.objects.all(), required=False, allow_null=True
+    )
 
     class Meta:
         model = Task

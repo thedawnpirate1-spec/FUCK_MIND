@@ -36,8 +36,16 @@ urlpatterns = [
     # Tasks, Dashboard & Comments
     path('tasks/assigned-to-me/', AssignedTasksView.as_view(), name='tasks-assigned-to-me'),
     path('tasks/reviewing/', ReviewingTasksView.as_view(), name='tasks-reviewing'),
-    path('tasks/<int:task_id>/comments/', TaskCommentListCreateView.as_view(), name='task-comments'),
-    path('tasks/<int:task_id>/comments/<int:pk>/', TaskCommentDetailView.as_view(), name='task-comment-detail'),
+    path(
+        'tasks/<int:task_id>/comments/',
+        TaskCommentListCreateView.as_view(),
+        name='task-comments'
+    ),
+    path(
+        'tasks/<int:task_id>/comments/<int:pk>/',
+        TaskCommentDetailView.as_view(),
+        name='task-comment-detail'
+    ),
 
     # Contacts, Tasks & Subtasks
     path('contacts/', ContactListCreateView.as_view(), name='contact-list-create'),

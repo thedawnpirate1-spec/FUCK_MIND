@@ -71,7 +71,11 @@ class RegistrationApiTest(APITestCase):
         self.assertIn('password', response.data)
 
     def test_registration_duplicate_username(self):
-        User.objects.create_user(username='existinguser', email='existing@example.com', password='Password123!')
+        User.objects.create_user(
+            username='existinguser',
+            email='existing@example.com',
+            password='Password123!'
+        )
         data = {
             "username": "existinguser",
             "email": "another@example.com",
@@ -153,7 +157,10 @@ class LogoutApiTest(APITestCase):
 
     def test_logout_unauthenticated(self):
         response = self.client.post(self.logout_url)
-        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+        self.assertIn(
+            response.status_code,
+            [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+        )
 
 
 class UserProfileApiTest(APITestCase):
@@ -180,12 +187,18 @@ class UserProfileApiTest(APITestCase):
 
     def test_get_profile_unauthenticated(self):
         response = self.client.get(self.profile_url)
-        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+        self.assertIn(
+            response.status_code,
+            [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+        )
 
     def test_get_profile_invalid_token(self):
         self.client.credentials(HTTP_AUTHORIZATION='Token invalidtoken12345')
         response = self.client.get(self.profile_url)
-        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+        self.assertIn(
+            response.status_code,
+            [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+        )
 
 
 class ContactApiTest(APITestCase):
@@ -291,7 +304,10 @@ class TaskApiTest(APITestCase):
             "title": "Unauthorized Task"
         }
         response = self.client.post(self.tasks_url, data)
-        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+        self.assertIn(
+            response.status_code,
+            [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+        )
 
     def test_list_tasks(self):
         Task.objects.create(title="Existing Task 1", status="to_do")
@@ -397,7 +413,10 @@ class TaskApiTest(APITestCase):
         task = Task.objects.create(title="Unauthorized delete task")
         detail_url = reverse('task-detail', kwargs={'pk': task.pk})
         response = self.client.delete(detail_url)
-        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+        self.assertIn(
+            response.status_code,
+            [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+        )
         self.assertTrue(Task.objects.filter(pk=task.pk).exists())
 
     def test_delete_task_not_found(self):
@@ -489,7 +508,10 @@ class ErrorHandlingApiTest(APITestCase):
 
     def test_unauthenticated_request_returns_401(self):
         response = self.client.get(reverse('task-list-create'))
-        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+        self.assertIn(
+            response.status_code,
+            [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+        )
         self.assertIn('detail', response.data)
 
     def test_not_found_endpoint_returns_404(self):
@@ -697,7 +719,8 @@ class SwaggerApiDocumentationTest(APITestCase):
 
 class FrontendIntegrationTest(APITestCase):
     """
-    Tests for frontend endpoints (registration/login with full name, email check, boards, comments, dashboard).
+    Tests for frontend endpoints (registration/login with full name,
+    email check, boards, comments, dashboard).
     """
 
     def setUp(self):
@@ -804,7 +827,9 @@ class FrontendIntegrationTest(APITestCase):
         self.assertEqual(list_comments.status_code, status.HTTP_200_OK)
         self.assertEqual(len(list_comments.data), 1)
 
-        del_comment = self.client.delete(reverse('task-comment-detail', kwargs={'task_id': task_id, 'pk': comment_id}))
+        del_comment = self.client.delete(
+            reverse('task-comment-detail', kwargs={'task_id': task_id, 'pk': comment_id})
+        )
         self.assertEqual(del_comment.status_code, status.HTTP_204_NO_CONTENT)
 
     def test_board_metrics_and_task_frontend_representation(self):

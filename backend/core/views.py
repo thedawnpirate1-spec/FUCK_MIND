@@ -115,7 +115,10 @@ class EmailCheckView(APIView):
     def get(self, request):
         email = request.query_params.get('email', '').strip()
         if not email:
-            return Response({'detail': 'Email parameter is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': 'Email parameter is required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         try:
             user = User.objects.get(email__iexact=email)
             serializer = UserDetailSerializer(user)
