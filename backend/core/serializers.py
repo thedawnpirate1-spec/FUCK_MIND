@@ -99,6 +99,11 @@ class TaskSerializer(serializers.ModelSerializer):
     def to_internal_value(self, data):
         data_copy = data.copy() if hasattr(data, 'copy') else dict(data)
 
+        if 'board_id' in data_copy and 'board' not in data_copy:
+            data_copy['board'] = data_copy.pop('board_id')
+        elif 'board' in data_copy and isinstance(data_copy['board'], dict) and 'id' in data_copy['board']:
+            data_copy['board'] = data_copy['board']['id']
+
         if 'assigned_to' in data_copy and data_copy['assigned_to'] is None:
             data_copy['assigned_to'] = []
 
@@ -217,11 +222,11 @@ class BoardUserSerializer(serializers.ModelSerializer):
     """
     Serializer für Benutzerdaten in Board-Darstellungen.
     """
-    fullname = serializers.CharField(read_only=True)
+    full_name = serializers.CharField(source='fullname', read_only=True)
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'fullname']
+        fields = ['id', 'email', 'full_name']
 
 
 class BoardSerializer(serializers.ModelSerializer):
@@ -231,13 +236,12 @@ class BoardSerializer(serializers.ModelSerializer):
     members = serializers.PrimaryKeyRelatedField(
         many=True, queryset=User.objects.all(), required=False
     )
-    members_data = BoardUserSerializer(source='members', many=True, read_only=True)
-    owner_data = BoardUserSerializer(source='owner', read_only=True)
+    owner = BoardUserSerializer(read_only=True)
 
     class Meta:
         model = Board
-        fields = ['id', 'title', 'members', 'members_data', 'owner_data']
-        read_only_fields = ['id', 'members_data', 'owner_data']
+        fields = ['id', 'title', 'members', 'owner']
+        read_only_fields = ['id', 'owner']
 
     def to_internal_value(self, data):
         data_copy = data.copy() if hasattr(data, 'copy') else dict(data)
@@ -250,6 +254,11 @@ class BoardSerializer(serializers.ModelSerializer):
                     normalized.append(item)
             data_copy['members'] = normalized
         return super().to_internal_value(data_copy)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['members'] = BoardUserSerializer(instance.members.all(), many=True).data
+        return data
 
 
 class RegistrationSerializer(serializers.ModelSerializer):

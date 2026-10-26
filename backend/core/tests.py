@@ -852,10 +852,11 @@ class FrontendIntegrationTest(APITestCase):
 
         board_resp = self.client.get(reverse('board-detail', kwargs={'pk': board.id}))
         self.assertEqual(board_resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(board_resp.data['owner_data']['id'], self.user.id)
-        self.assertEqual(board_resp.data['owner_data']['email'], self.user.email)
-        self.assertEqual(len(board_resp.data['members_data']), 2)
+        self.assertEqual(board_resp.data['owner']['id'], self.user.id)
+        self.assertEqual(board_resp.data['owner']['email'], self.user.email)
+        self.assertEqual(board_resp.data['owner']['full_name'], 'Max Mustermann')
         self.assertEqual(len(board_resp.data['members']), 2)
+        self.assertIn('full_name', board_resp.data['members'][0])
 
         assigned_resp = self.client.get(reverse('tasks-assigned-to-me'))
         self.assertEqual(assigned_resp.status_code, status.HTTP_200_OK)
@@ -874,6 +875,7 @@ class FrontendIntegrationTest(APITestCase):
         board = Board.objects.create(title="Private Board", owner=self.user)
         board.members.add(self.user)
         task = Task.objects.create(board=board, title="Private Task", created_by=self.user)
+        comment = Comment.objects.create(task=task, author=self.user, content="Owner comment")
 
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {outsider_token.key}')
 
@@ -895,11 +897,23 @@ class FrontendIntegrationTest(APITestCase):
         })
         self.assertEqual(create_404.status_code, status.HTTP_404_NOT_FOUND)
 
+        create_404_board_id = self.client.post(reverse('task-list-create'), {
+            'board_id': 4000,
+            'title': 'No Board Task via board_id'
+        })
+        self.assertEqual(create_404_board_id.status_code, status.HTTP_404_NOT_FOUND)
+
         create_403 = self.client.post(reverse('task-list-create'), {
             'board': board.id,
             'title': 'Forbidden Task'
         })
         self.assertEqual(create_403.status_code, status.HTTP_403_FORBIDDEN)
+
+        create_403_board_id = self.client.post(reverse('task-list-create'), {
+            'board_id': board.id,
+            'title': 'Forbidden Task via board_id'
+        })
+        self.assertEqual(create_403_board_id.status_code, status.HTTP_403_FORBIDDEN)
 
         comment_404 = self.client.get(
             reverse('task-comments', kwargs={'task_id': 9999})
@@ -913,6 +927,38 @@ class FrontendIntegrationTest(APITestCase):
 
         del_task_403 = self.client.delete(reverse('task-detail', kwargs={'pk': task.id}))
         self.assertEqual(del_task_403.status_code, status.HTTP_403_FORBIDDEN)
+
+        del_comment_403 = self.client.delete(
+            reverse('task-comment-detail', kwargs={'task_id': task.id, 'pk': comment.id})
+        )
+        self.assertEqual(del_comment_403.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_board_patch_response_schema(self):
+        board = Board.objects.create(title="Sprint Board", owner=self.user)
+        board.members.add(self.user)
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token.key}')
+        patch_resp = self.client.patch(
+            reverse('board-detail', kwargs={'pk': board.id}),
+            {'title': 'Renamed Sprint Board'},
+            format='json'
+        )
+        self.assertEqual(patch_resp.status_code, status.HTTP_200_OK)
+        self.assertIn('members', patch_resp.data)
+        self.assertIn('owner', patch_resp.data)
+        self.assertEqual(set(patch_resp.data.keys()), {'id', 'title', 'members', 'owner'})
+
+        member_entry = patch_resp.data['members'][0]
+        self.assertEqual(set(member_entry.keys()), {'id', 'email', 'full_name'})
+        self.assertEqual(member_entry['id'], self.user.id)
+        self.assertEqual(member_entry['email'], self.user.email)
+        self.assertEqual(member_entry['full_name'], 'Max Mustermann')
+
+        owner_entry = patch_resp.data['owner']
+        self.assertEqual(set(owner_entry.keys()), {'id', 'email', 'full_name'})
+        self.assertEqual(owner_entry['id'], self.user.id)
+        self.assertEqual(owner_entry['email'], self.user.email)
+        self.assertEqual(owner_entry['full_name'], 'Max Mustermann')
 
 
 

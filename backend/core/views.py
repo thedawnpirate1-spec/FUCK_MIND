@@ -227,11 +227,13 @@ class TaskListCreateView(generics.ListCreateAPIView):
         return queryset
 
     def create(self, request, *args, **kwargs):
-        board_id = request.data.get('board')
+        board_id = request.data.get('board') if request.data.get('board') is not None else request.data.get('board_id')
+        if isinstance(board_id, dict):
+            board_id = board_id.get('id')
         if board_id is not None:
             try:
                 board = Board.objects.get(id=board_id)
-            except (Board.DoesNotExist, ValueError):
+            except (Board.DoesNotExist, ValueError, TypeError):
                 return Response(
                     {'detail': 'Board not found.'},
                     status=status.HTTP_404_NOT_FOUND
@@ -274,11 +276,13 @@ class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
         return task
 
     def update(self, request, *args, **kwargs):
-        board_id = request.data.get('board')
+        board_id = request.data.get('board') if request.data.get('board') is not None else request.data.get('board_id')
+        if isinstance(board_id, dict):
+            board_id = board_id.get('id')
         if board_id is not None:
             try:
                 board = Board.objects.get(id=board_id)
-            except (Board.DoesNotExist, ValueError):
+            except (Board.DoesNotExist, ValueError, TypeError):
                 return Response(
                     {'detail': 'Board not found.'},
                     status=status.HTTP_404_NOT_FOUND
