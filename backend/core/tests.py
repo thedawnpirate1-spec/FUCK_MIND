@@ -849,41 +849,70 @@ class FrontendIntegrationTest(APITestCase):
             assignee=self.user,
             created_by=self.user
         )
-        Task.objects.create(
-            board=board,
-            title="In Progress High Task",
-            status="in-progress",
-            priority="high",
-            assignee=self.user,
-            created_by=self.user
-        )
-        Task.objects.create(
-            board=board,
-            title="Done Task",
-            status="done",
-            priority="low",
-            assignee=self.user,
-            created_by=self.user
-        )
 
         board_resp = self.client.get(reverse('board-detail', kwargs={'pk': board.id}))
         self.assertEqual(board_resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(board_resp.data['owner_id'], self.user.id)
-        self.assertEqual(board_resp.data['member_count'], 2)
-        self.assertEqual(board_resp.data['ticket_count'], 3)
-        self.assertEqual(board_resp.data['tasks_to_do_count'], 1)
-        self.assertEqual(board_resp.data['tasks_high_prio_count'], 2)
-
-        tasks = board_resp.data['tasks']
-        urgent_task = next(t for t in tasks if t['title'] == 'Urgent ToDo Task')
-        self.assertEqual(urgent_task['status'], 'to-do')
-        self.assertEqual(urgent_task['priority'], 'high')
+        self.assertEqual(board_resp.data['owner_data']['id'], self.user.id)
+        self.assertEqual(board_resp.data['owner_data']['email'], self.user.email)
+        self.assertEqual(len(board_resp.data['members_data']), 2)
+        self.assertEqual(len(board_resp.data['members']), 2)
 
         assigned_resp = self.client.get(reverse('tasks-assigned-to-me'))
         self.assertEqual(assigned_resp.status_code, status.HTTP_200_OK)
         assigned_urgent = next(t for t in assigned_resp.data if t['title'] == 'Urgent ToDo Task')
         self.assertEqual(assigned_urgent['status'], 'to-do')
         self.assertEqual(assigned_urgent['priority'], 'high')
+
+    def test_board_and_task_permissions_and_status_codes(self):
+        outsider = User.objects.create_user(
+            username='outsider',
+            email='outsider@example.com',
+            password='Password123!'
+        )
+        outsider_token = Token.objects.create(user=outsider)
+
+        board = Board.objects.create(title="Private Board", owner=self.user)
+        board.members.add(self.user)
+        task = Task.objects.create(board=board, title="Private Task", created_by=self.user)
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {outsider_token.key}')
+
+        get_resp = self.client.get(reverse('board-detail', kwargs={'pk': board.id}))
+        self.assertEqual(get_resp.status_code, status.HTTP_403_FORBIDDEN)
+
+        patch_resp = self.client.patch(
+            reverse('board-detail', kwargs={'pk': board.id}),
+            {'title': 'Hacked'}
+        )
+        self.assertEqual(patch_resp.status_code, status.HTTP_403_FORBIDDEN)
+
+        del_resp = self.client.delete(reverse('board-detail', kwargs={'pk': board.id}))
+        self.assertEqual(del_resp.status_code, status.HTTP_403_FORBIDDEN)
+
+        create_404 = self.client.post(reverse('task-list-create'), {
+            'board': 9999,
+            'title': 'No Board Task'
+        })
+        self.assertEqual(create_404.status_code, status.HTTP_404_NOT_FOUND)
+
+        create_403 = self.client.post(reverse('task-list-create'), {
+            'board': board.id,
+            'title': 'Forbidden Task'
+        })
+        self.assertEqual(create_403.status_code, status.HTTP_403_FORBIDDEN)
+
+        comment_404 = self.client.get(
+            reverse('task-comments', kwargs={'task_id': 9999})
+        )
+        self.assertEqual(comment_404.status_code, status.HTTP_404_NOT_FOUND)
+
+        comment_403 = self.client.get(
+            reverse('task-comments', kwargs={'task_id': task.id})
+        )
+        self.assertEqual(comment_403.status_code, status.HTTP_403_FORBIDDEN)
+
+        del_task_403 = self.client.delete(reverse('task-detail', kwargs={'pk': task.id}))
+        self.assertEqual(del_task_403.status_code, status.HTTP_403_FORBIDDEN)
 
 
 

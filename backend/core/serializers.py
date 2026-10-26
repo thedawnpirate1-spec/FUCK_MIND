@@ -108,8 +108,22 @@ class TaskSerializer(serializers.ModelSerializer):
         if data_copy.get('assignee_id') in ['', 0]:
             data_copy['assignee_id'] = None
 
+        if 'assignee' in data_copy:
+            val = data_copy.pop('assignee')
+            if isinstance(val, dict):
+                data_copy['assignee_id'] = val.get('id')
+            elif val not in ['', 0]:
+                data_copy['assignee_id'] = val
+
         if data_copy.get('reviewer_id') in ['', 0]:
             data_copy['reviewer_id'] = None
+
+        if 'reviewer' in data_copy:
+            val = data_copy.pop('reviewer')
+            if isinstance(val, dict):
+                data_copy['reviewer_id'] = val.get('id')
+            elif val not in ['', 0]:
+                data_copy['reviewer_id'] = val
 
         if 'status' in data_copy and isinstance(data_copy['status'], str):
             data_copy['status'] = data_copy['status'].strip().lower().replace(' ', '_')
@@ -199,60 +213,43 @@ class BoardTaskSerializer(TaskSerializer):
         return data
 
 
+class BoardUserSerializer(serializers.ModelSerializer):
+    """
+    Serializer für Benutzerdaten in Board-Darstellungen.
+    """
+    fullname = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'fullname']
+
+
 class BoardSerializer(serializers.ModelSerializer):
     """
-    Serializer for boards with members and associated tasks.
+    Serializer für Boards mit Mitgliedern und Eigentümer.
     """
-    members = UserDetailSerializer(many=True, read_only=True)
-    tasks = BoardTaskSerializer(many=True, read_only=True)
-    owner = UserDetailSerializer(read_only=True)
-    owner_id = serializers.IntegerField(read_only=True, allow_null=True)
-    member_count = serializers.SerializerMethodField()
-    ticket_count = serializers.SerializerMethodField()
-    tasks_to_do_count = serializers.SerializerMethodField()
-    tasks_high_prio_count = serializers.SerializerMethodField()
+    members = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=User.objects.all(), required=False
+    )
+    members_data = BoardUserSerializer(source='members', many=True, read_only=True)
+    owner_data = BoardUserSerializer(source='owner', read_only=True)
 
     class Meta:
         model = Board
-        fields = [
-            'id', 'title', 'members', 'tasks', 'owner', 'owner_id',
-            'member_count', 'ticket_count', 'tasks_to_do_count', 'tasks_high_prio_count',
-            'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'owner', 'owner_id', 'created_at', 'updated_at']
-
-    @extend_schema_field(serializers.IntegerField)
-    def get_member_count(self, obj) -> int:
-        return obj.members.count()
-
-    @extend_schema_field(serializers.IntegerField)
-    def get_ticket_count(self, obj) -> int:
-        return obj.tasks.count()
-
-    @extend_schema_field(serializers.IntegerField)
-    def get_tasks_to_do_count(self, obj) -> int:
-        return obj.tasks.filter(status__in=['to_do', 'to-do']).count()
-
-    @extend_schema_field(serializers.IntegerField)
-    def get_tasks_high_prio_count(self, obj) -> int:
-        return obj.tasks.filter(priority__in=['high', 'urgent']).count()
+        fields = ['id', 'title', 'members', 'members_data', 'owner_data']
+        read_only_fields = ['id', 'members_data', 'owner_data']
 
     def to_internal_value(self, data):
         data_copy = data.copy() if hasattr(data, 'copy') else dict(data)
-        self._raw_member_ids = data_copy.pop('members', None)
+        if 'members' in data_copy and isinstance(data_copy['members'], list):
+            normalized = []
+            for item in data_copy['members']:
+                if isinstance(item, dict) and 'id' in item:
+                    normalized.append(item['id'])
+                else:
+                    normalized.append(item)
+            data_copy['members'] = normalized
         return super().to_internal_value(data_copy)
-
-    def create(self, validated_data):
-        board = Board.objects.create(**validated_data)
-        if hasattr(self, '_raw_member_ids') and self._raw_member_ids is not None:
-            board.members.set(self._raw_member_ids)
-        return board
-
-    def update(self, instance, validated_data):
-        instance = super().update(instance, validated_data)
-        if hasattr(self, '_raw_member_ids') and self._raw_member_ids is not None:
-            instance.members.set(self._raw_member_ids)
-        return instance
 
 
 class RegistrationSerializer(serializers.ModelSerializer):

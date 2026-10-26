@@ -1,7 +1,7 @@
 from django.db.models import Q
 from django.contrib.auth import get_user_model
 from rest_framework.views import APIView
-from rest_framework import generics
+from rest_framework import generics, permissions, exceptions
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -127,10 +127,22 @@ class EmailCheckView(APIView):
             return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
 
+class IsBoardMemberOrOwner(permissions.BasePermission):
+    """
+    Berechtigungsprüfung für Boards: Nur Mitglieder oder Eigentümer dürfen zugreifen.
+    """
+    def has_object_permission(self, request, view, obj):
+        is_owner = (obj.owner == request.user)
+        is_member = obj.members.filter(id=request.user.id).exists()
+        if request.method == 'DELETE':
+            return is_owner
+        return is_owner or is_member
+
+
 class BoardListCreateView(generics.ListCreateAPIView):
     """
-    GET: List all boards of the authenticated user.
-    POST: Create a new board.
+    GET: Alle Boards des Nutzers auflisten.
+    POST: Neues Board erstellen.
     """
     serializer_class = BoardSerializer
     permission_classes = [IsAuthenticated]
@@ -142,16 +154,17 @@ class BoardListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         board = serializer.save(owner=self.request.user)
-        board.members.add(self.request.user)
+        if not board.members.filter(id=self.request.user.id).exists():
+            board.members.add(self.request.user)
 
 
 class BoardDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
-    GET, PATCH, PUT, DELETE for a single board.
+    GET, PATCH, PUT, DELETE für ein einzelnes Board.
     """
     queryset = Board.objects.all()
     serializer_class = BoardSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsBoardMemberOrOwner]
 
 
 class ContactListCreateView(generics.ListCreateAPIView):
@@ -175,8 +188,8 @@ class ContactDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class TaskListCreateView(generics.ListCreateAPIView):
     """
-    GET: List all tasks with filter query parameters.
-    POST: Create a new task.
+    GET: Tasks auflisten (mit Filtern für Status, Priorität, Board etc.).
+    POST: Neuen Task erstellen.
     """
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
@@ -196,12 +209,41 @@ class TaskListCreateView(generics.ListCreateAPIView):
         if assigned_to_param:
             queryset = queryset.filter(assigned_to__id=assigned_to_param)
         if board_param:
-            queryset = queryset.filter(board_id=board_param)
+            try:
+                board = Board.objects.get(id=board_param)
+            except (Board.DoesNotExist, ValueError):
+                raise exceptions.NotFound({'detail': 'Board not found.'})
+            is_member = board.members.filter(id=self.request.user.id).exists()
+            is_owner = (board.owner == self.request.user)
+            if not (is_owner or is_member):
+                raise exceptions.PermissionDenied(
+                    {'detail': 'You are not a member of this board.'}
+                )
+            queryset = queryset.filter(board=board)
         if search_param:
             queryset = queryset.filter(
                 Q(title__icontains=search_param) | Q(description__icontains=search_param)
             )
         return queryset
+
+    def create(self, request, *args, **kwargs):
+        board_id = request.data.get('board')
+        if board_id is not None:
+            try:
+                board = Board.objects.get(id=board_id)
+            except (Board.DoesNotExist, ValueError):
+                return Response(
+                    {'detail': 'Board not found.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            is_member = board.members.filter(id=request.user.id).exists()
+            is_owner = (board.owner == request.user)
+            if not (is_owner or is_member):
+                return Response(
+                    {'detail': 'You are not a member of this board.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
@@ -209,13 +251,46 @@ class TaskListCreateView(generics.ListCreateAPIView):
 
 class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
-    GET: Retrieve details of a single task.
-    PUT / PATCH: Update task.
-    DELETE: Delete task.
+    GET, PUT, PATCH, DELETE für einen einzelnen Task.
     """
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        task_id = self.kwargs.get('pk')
+        try:
+            task = Task.objects.get(id=task_id)
+        except Task.DoesNotExist:
+            raise exceptions.NotFound({'detail': 'Task not found.'})
+
+        if task.board:
+            is_board_owner = (task.board.owner == self.request.user)
+            is_board_member = task.board.members.filter(id=self.request.user.id).exists()
+            if not (is_board_owner or is_board_member):
+                raise exceptions.PermissionDenied(
+                    {'detail': 'You do not have permission to access this task.'}
+                )
+        return task
+
+    def update(self, request, *args, **kwargs):
+        board_id = request.data.get('board')
+        if board_id is not None:
+            try:
+                board = Board.objects.get(id=board_id)
+            except (Board.DoesNotExist, ValueError):
+                return Response(
+                    {'detail': 'Board not found.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            is_member = board.members.filter(id=request.user.id).exists()
+            is_owner = (board.owner == request.user)
+            if not (is_owner or is_member):
+                return Response(
+                    {'detail': 'You are not a member of this board.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        return super().update(request, *args, **kwargs)
 
 
 class AssignedTasksView(generics.ListAPIView):
@@ -242,38 +317,78 @@ class ReviewingTasksView(generics.ListAPIView):
 
 class TaskCommentListCreateView(generics.ListCreateAPIView):
     """
-    GET: Retrieve comments for a task.
-    POST: Create a new comment on a task.
+    GET: Kommentare eines Tasks abrufen.
+    POST: Neuen Kommentar zu einem Task erstellen.
     """
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
+    def get_task(self):
         task_id = self.kwargs.get('task_id')
-        return Comment.objects.filter(task_id=task_id).order_by('created_at')
+        try:
+            task = Task.objects.get(id=task_id)
+        except Task.DoesNotExist:
+            raise exceptions.NotFound({'detail': 'Task not found.'})
+
+        if task.board:
+            is_member = task.board.members.filter(id=self.request.user.id).exists()
+            is_owner = (task.board.owner == self.request.user)
+            if not (is_owner or is_member):
+                raise exceptions.PermissionDenied(
+                    {'detail': 'You do not have permission to access comments for this task.'}
+                )
+        return task
+
+    def get_queryset(self):
+        task = self.get_task()
+        return Comment.objects.filter(task=task).order_by('created_at')
 
     def perform_create(self, serializer):
-        task_id = self.kwargs.get('task_id')
-        task = generics.get_object_or_404(Task, id=task_id)
+        task = self.get_task()
         serializer.save(author=self.request.user, task=task)
 
 
 class TaskCommentDetailView(generics.DestroyAPIView):
     """
-    DELETE: Delete a single comment from a task.
+    DELETE: Einzelnen Kommentar eines Tasks löschen.
     """
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
+    def get_object(self):
         task_id = self.kwargs.get('task_id')
-        return Comment.objects.filter(task_id=task_id)
+        try:
+            task = Task.objects.get(id=task_id)
+        except Task.DoesNotExist:
+            raise exceptions.NotFound({'detail': 'Task not found.'})
+
+        if task.board:
+            is_board_owner = (task.board.owner == self.request.user)
+            is_board_member = task.board.members.filter(id=self.request.user.id).exists()
+            if not (is_board_owner or is_board_member):
+                raise exceptions.PermissionDenied(
+                    {'detail': 'You do not have permission to access this task.'}
+                )
+        else:
+            is_board_owner = False
+
+        try:
+            comment = Comment.objects.get(id=self.kwargs.get('pk'), task=task)
+        except Comment.DoesNotExist:
+            raise exceptions.NotFound({'detail': 'Comment not found.'})
+
+        if comment.author != self.request.user and not is_board_owner:
+            raise exceptions.PermissionDenied(
+                {'detail': 'You do not have permission to delete this comment.'}
+            )
+
+        return comment
 
 
 class SubtaskListCreateView(generics.ListCreateAPIView):
     """
-    GET: Retrieve subtasks (filterable by ?task=<task_id>).
-    POST: Create a new subtask for a task.
+    GET: Subtasks abrufen (filterbar nach ?task=<task_id>).
+    POST: Neuen Subtask erstellen.
     """
     serializer_class = SubtaskSerializer
     permission_classes = [IsAuthenticated]
@@ -282,19 +397,50 @@ class SubtaskListCreateView(generics.ListCreateAPIView):
         queryset = Subtask.objects.all().order_by('created_at')
         task_id = self.request.query_params.get('task')
         if task_id:
+            try:
+                task = Task.objects.get(id=task_id)
+                if task.board:
+                    is_member = task.board.members.filter(id=self.request.user.id).exists()
+                    is_owner = (task.board.owner == self.request.user)
+                    if not (is_owner or is_member):
+                        raise exceptions.PermissionDenied(
+                            {'detail': 'You do not have permission to view subtasks for this task.'}
+                        )
+            except Task.DoesNotExist:
+                raise exceptions.NotFound({'detail': 'Task not found.'})
             queryset = queryset.filter(task_id=task_id)
         return queryset
+
+    def perform_create(self, serializer):
+        task = serializer.validated_data.get('task')
+        if task and task.board:
+            is_member = task.board.members.filter(id=self.request.user.id).exists()
+            is_owner = (task.board.owner == self.request.user)
+            if not (is_owner or is_member):
+                raise exceptions.PermissionDenied(
+                    {'detail': 'You do not have permission to create subtasks for this task.'}
+                )
+        serializer.save()
 
 
 class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
-    GET: Retrieve subtask details.
-    PUT / PATCH: Update subtask.
-    DELETE: Delete subtask.
+    GET, PUT, PATCH, DELETE für einen einzelnen Subtask.
     """
     queryset = Subtask.objects.all()
     serializer_class = SubtaskSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        subtask = super().get_object()
+        if subtask.task and subtask.task.board:
+            is_member = subtask.task.board.members.filter(id=self.request.user.id).exists()
+            is_owner = (subtask.task.board.owner == self.request.user)
+            if not (is_owner or is_member):
+                raise exceptions.PermissionDenied(
+                    {'detail': 'You do not have permission to access this subtask.'}
+                )
+        return subtask
 
 
 def custom_404_view(request, exception=None):
