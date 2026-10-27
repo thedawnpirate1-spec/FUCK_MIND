@@ -52,7 +52,6 @@ class Command(BaseCommand):
                 'description': 'Integrate backend endpoints for boards, tasks, and auth',
                 'status': 'in-progress',
                 'priority': 'high',
-                'category': 'User Story',
                 'assignee': guest_user,
                 'reviewer': colleague_user,
                 'due_date': today + timedelta(days=3),
@@ -67,7 +66,6 @@ class Command(BaseCommand):
                 'description': 'Test all endpoints in Swagger UI',
                 'status': 'done',
                 'priority': 'medium',
-                'category': 'Technical Task',
                 'assignee': guest_user,
                 'due_date': today - timedelta(days=1),
                 'created_by': guest_user
@@ -81,7 +79,6 @@ class Command(BaseCommand):
                 'description': 'Test board design and responsiveness across devices',
                 'status': 'to-do',
                 'priority': 'low',
-                'category': 'User Story',
                 'assignee': colleague_user,
                 'reviewer': guest_user,
                 'due_date': today + timedelta(days=7),

@@ -18,20 +18,6 @@ class CustomUser(AbstractUser):
         return f"{self.username} ({self.email})"
 
 
-class Contact(models.Model):
-    """
-    Contact model for KanMind board assignees.
-    """
-    name = models.CharField(max_length=150)
-    email = models.EmailField()
-    phone = models.CharField(max_length=50, blank=True, default='')
-    color = models.CharField(max_length=7, default='#FF7A00')
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.name} ({self.email})"
-
-
 class Board(models.Model):
     """
     Board model for grouping tasks and members.
@@ -48,6 +34,12 @@ class Board(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def is_member_or_owner(self, user):
+        """
+        Returns True if the user owns the board or is one of its members.
+        """
+        return self.owner_id == user.id or self.members.filter(id=user.id).exists()
+
     def __str__(self):
         return self.title
 
@@ -60,15 +52,11 @@ class Task(models.Model):
         ('low', 'Low'),
         ('medium', 'Medium'),
         ('high', 'High'),
-        ('urgent', 'Urgent'),
     ]
 
     STATUS_CHOICES = [
-        ('to_do', 'To Do'),
         ('to-do', 'To Do'),
-        ('in_progress', 'In Progress'),
         ('in-progress', 'In Progress'),
-        ('await_feedback', 'Await Feedback'),
         ('review', 'Review'),
         ('done', 'Done'),
     ]
@@ -84,8 +72,7 @@ class Task(models.Model):
     description = models.TextField(blank=True, default='')
     due_date = models.DateField(null=True, blank=True)
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='to_do')
-    category = models.CharField(max_length=100, blank=True, default='User Story')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='to-do')
     assignee = models.ForeignKey(
         CustomUser,
         on_delete=models.SET_NULL,
@@ -100,7 +87,6 @@ class Task(models.Model):
         blank=True,
         related_name='reviewing_tasks'
     )
-    assigned_to = models.ManyToManyField(Contact, blank=True, related_name='tasks')
     created_by = models.ForeignKey(
         CustomUser,
         on_delete=models.SET_NULL,
@@ -117,19 +103,6 @@ class Task(models.Model):
 
     def __str__(self):
         return f"{self.title} [{self.status}]"
-
-
-class Subtask(models.Model):
-    """
-    Subtask model for KanMind tasks.
-    """
-    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='subtasks')
-    title = models.CharField(max_length=255)
-    is_completed = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.title} (Done: {self.is_completed})"
 
 
 class Comment(models.Model):

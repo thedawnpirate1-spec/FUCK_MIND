@@ -94,60 +94,47 @@ Once the development server is running, the following interactive documentation 
 
 ## API Endpoints Overview
 
+The API implements exactly the endpoints of the KanMind endpoint documentation. All endpoints except registration and login require the header `Authorization: Token <token>` (the `Bearer` prefix is accepted as well).
+
 ### Authentication
 
 | Method | Endpoint | Protection | Description |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/auth/register/` | Public | Register a new user and return an auth token |
-| `POST` | `/api/auth/login/` | Public | Login via username or email and password |
-| `POST` | `/api/auth/logout/` | Token / Bearer | Log out and delete active authentication token |
-| `GET` | `/api/auth/user/` | Token / Bearer | Retrieve profile data of authenticated user |
+| `POST` | `/api/registration/` | Public | Register a new user (`fullname`, `email`, `password`, `repeated_password`); returns `token`, `fullname`, `email`, `user_id` |
+| `POST` | `/api/login/` | Public | Login with `email` and `password`; returns `token`, `fullname`, `email`, `user_id` |
+| `GET` | `/api/email-check/?email=...` | Token | Return the user (`id`, `email`, `fullname`) registered with this email (`404` if unknown) |
 
-### Contacts
-
-| Method | Endpoint | Protection | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/contacts/` | Token / Bearer | Retrieve list of all contacts |
-| `POST` | `/api/contacts/` | Token / Bearer | Create a new contact |
-| `GET` | `/api/contacts/<id>/` | Token / Bearer | Retrieve single contact details |
-| `PUT` / `PATCH` | `/api/contacts/<id>/` | Token / Bearer | Update a contact |
-| `DELETE` | `/api/contacts/<id>/` | Token / Bearer | Delete a contact |
-
-### Tasks (Kanban Board)
+### Boards
 
 | Method | Endpoint | Protection | Description |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/tasks/` | Token / Bearer | Retrieve tasks (filter by `status`, `priority`, `search`, `assigned_to`, `board`) |
-| `POST` | `/api/tasks/` | Token / Bearer | Create a task (supports nested subtasks) |
-| `GET` | `/api/tasks/<id>/` | Token / Bearer | Retrieve task details including subtasks, assignees, and reviewer |
-| `PUT` / `PATCH` | `/api/tasks/<id>/` | Token / Bearer | Update task (status transitions, priority, assignees) |
-| `DELETE` | `/api/tasks/<id>/` | Token / Bearer | Delete task (cascades associated subtasks) |
+| `GET` | `/api/boards/` | Token | Boards the user owns or is a member of, with `member_count`, `ticket_count`, `tasks_to_do_count`, `tasks_high_prio_count`, `owner_id` |
+| `POST` | `/api/boards/` | Token | Create a board (`title`, `members` as user ids); the requesting user becomes the owner |
+| `GET` | `/api/boards/{board_id}/` | Owner / member | Board with `owner_id`, `members` and `tasks` |
+| `PATCH` | `/api/boards/{board_id}/` | Owner / member | Update `title` and `members`; returns `owner_data` and `members_data` |
+| `DELETE` | `/api/boards/{board_id}/` | Owner | Delete the board including its tasks and comments |
 
-### Subtasks
-
-| Method | Endpoint | Protection | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/subtasks/` | Token / Bearer | Retrieve subtasks (filterable with `?task=<task_id>`) |
-| `POST` | `/api/subtasks/` | Token / Bearer | Create a subtask for a task |
-| `GET` | `/api/subtasks/<id>/` | Token / Bearer | Retrieve single subtask details |
-| `PUT` / `PATCH` | `/api/subtasks/<id>/` | Token / Bearer | Update subtask (toggle `is_completed` status) |
-| `DELETE` | `/api/subtasks/<id>/` | Token / Bearer | Delete a subtask |
-
-### Boards and Comments
+### Tasks
 
 | Method | Endpoint | Protection | Description |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/boards/` | Token / Bearer | List all boards for the authenticated user |
-| `POST` | `/api/boards/` | Token / Bearer | Create a new board with members |
-| `GET` | `/api/boards/<id>/` | Token / Bearer | Retrieve board details with linked tasks and members |
-| `PUT` / `PATCH` | `/api/boards/<id>/` | Token / Bearer | Update board title and member list |
-| `DELETE` | `/api/boards/<id>/` | Token / Bearer | Delete a board |
-| `GET` | `/api/tasks/assigned-to-me/` | Token / Bearer | Retrieve tasks assigned to current user for dashboard |
-| `GET` | `/api/tasks/reviewing/` | Token / Bearer | Retrieve tasks in review for current user |
-| `GET` | `/api/email-check/` | Token / Bearer | Check user availability for board invitations (`?email=...`) |
-| `GET` | `/api/tasks/<id>/comments/` | Token / Bearer | Retrieve comments for a task |
-| `POST` | `/api/tasks/<id>/comments/` | Token / Bearer | Create a comment on a task |
-| `DELETE` | `/api/tasks/<task_id>/comments/<id>/` | Token / Bearer | Delete comment by author |
+| `GET` | `/api/tasks/assigned-to-me/` | Token | Tasks where the user is the assignee |
+| `GET` | `/api/tasks/reviewing/` | Token | Tasks where the user is the reviewer |
+| `POST` | `/api/tasks/` | Board member | Create a task; `status`: `to-do`, `in-progress`, `review`, `done`; `priority`: `low`, `medium`, `high`; assignee and reviewer must be board members |
+| `PATCH` | `/api/tasks/{task_id}/` | Board member | Update a task; the board of a task cannot be changed |
+| `DELETE` | `/api/tasks/{task_id}/` | Task creator / board owner | Delete a task |
+
+### Comments
+
+| Method | Endpoint | Protection | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/tasks/{task_id}/comments/` | Board member | Comments of a task, oldest first |
+| `POST` | `/api/tasks/{task_id}/comments/` | Board member | Add a comment (`content`); the author is the requesting user |
+| `DELETE` | `/api/tasks/{task_id}/comments/{comment_id}/` | Comment author | Delete a comment |
+
+### Status codes
+
+`400` invalid data, `401` not authenticated, `403` not allowed (e.g. not a member of the board), `404` resource not found, `500` internal server error.
 
 ## Frontend Integration
 
@@ -262,3 +249,11 @@ When deploying to a production environment (such as a Linux VPS, Render, Railway
 * Added interactive Swagger UI at `/api/docs/` and ReDoc at `/api/redoc/`
 * Verified documentation endpoints and complete test suite (all 68 tests passing)
 * Prepared deployment guidelines and documentation
+
+### Day 15: Alignment with the Endpoint Documentation
+* Reduced the API to the endpoints of the endpoint documentation (`/api/registration/`, `/api/login/`, `/api/email-check/`, boards, tasks, comments)
+* Removed contacts, subtasks, `/api/auth/*` and the task list/detail `GET` endpoints, including the models and admin entries
+* Board list/create now return `member_count`, `ticket_count`, `tasks_to_do_count`, `tasks_high_prio_count` and `owner_id`; board detail returns `owner_id`, `members` and `tasks`; board update returns `owner_data` and `members_data`
+* Limited task status to `to-do`, `in-progress`, `review`, `done` and priority to `low`, `medium`, `high`; assignee and reviewer must be board members
+* Task deletion is limited to the task creator and the board owner; comments can only be deleted by their author
+* Rewrote the test suite and regenerated the Postman collection (49 requests with assertions)

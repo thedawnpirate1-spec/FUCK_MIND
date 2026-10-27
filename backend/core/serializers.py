@@ -1,351 +1,244 @@
-from rest_framework import serializers
-from django.contrib.auth import get_user_model, authenticate
+from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.password_validation import validate_password
-from drf_spectacular.utils import extend_schema_field
-from .models import Contact, Task, Subtask, Board, Comment
+from rest_framework import serializers
+from .models import Board, Task, Comment
 
 User = get_user_model()
 
 
-class UserDetailSerializer(serializers.ModelSerializer):
+class UserSummarySerializer(serializers.ModelSerializer):
     """
-    Serializer for authenticated user profile data.
+    Minimal user representation: id, email and full name.
     """
-    user_id = serializers.IntegerField(source='id', read_only=True)
     fullname = serializers.CharField(read_only=True)
 
     class Meta:
         model = User
-        fields = [
-            'user_id', 'id', 'username', 'email',
-            'first_name', 'last_name', 'fullname', 'color'
-        ]
+        fields = ['id', 'email', 'fullname']
 
 
-class ContactSerializer(serializers.ModelSerializer):
+class AuthResponseSerializer(serializers.Serializer):
     """
-    Serializer for contacts with automatic whitespace trimming.
+    Documents the response of the registration and login endpoints.
     """
+    token = serializers.CharField()
+    fullname = serializers.CharField()
+    email = serializers.EmailField()
+    user_id = serializers.IntegerField()
+
+
+class RegistrationSerializer(serializers.ModelSerializer):
+    """
+    Serializer for user registration (fullname, email, password, repeated_password).
+    """
+    fullname = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, validators=[validate_password])
+    repeated_password = serializers.CharField(write_only=True)
+
     class Meta:
-        model = Contact
-        fields = ['id', 'name', 'email', 'phone', 'color', 'created_at']
-        read_only_fields = ['id', 'created_at']
-
-    def validate_name(self, value):
-        return value.strip()
+        model = User
+        fields = ['fullname', 'email', 'password', 'repeated_password']
 
     def validate_email(self, value):
-        return value.strip().lower()
-
-
-class SubtaskSerializer(serializers.ModelSerializer):
-    """
-    Serializer for subtasks, usable standalone or nested.
-    """
-    id = serializers.IntegerField(required=False)
-
-    class Meta:
-        model = Subtask
-        fields = ['id', 'task', 'title', 'is_completed', 'created_at']
-        read_only_fields = ['created_at']
-        extra_kwargs = {
-            'task': {'required': False}
-        }
+        value = value.strip().lower()
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError('A user with this email already exists.')
+        return value
 
     def validate(self, attrs):
-        if not self.parent and 'task' not in attrs and not self.instance:
-            raise serializers.ValidationError({"task": "This field is required."})
+        if attrs['password'] != attrs['repeated_password']:
+            raise serializers.ValidationError(
+                {'repeated_password': 'Passwords do not match.'}
+            )
+        return attrs
+
+    def create(self, validated_data):
+        first_name, _, last_name = validated_data['fullname'].strip().partition(' ')
+        return User.objects.create_user(
+            username=self._unique_username(validated_data['email']),
+            email=validated_data['email'],
+            password=validated_data['password'],
+            first_name=first_name,
+            last_name=last_name.strip()
+        )
+
+    @staticmethod
+    def _unique_username(email):
+        base_username = email.split('@')[0]
+        username = base_username
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{base_username}{counter}"
+            counter += 1
+        return username
+
+
+class LoginSerializer(serializers.Serializer):
+    """
+    Serializer for user login via email and password.
+    """
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        user_obj = User.objects.filter(email__iexact=attrs['email'].strip()).first()
+        user = user_obj and authenticate(
+            username=user_obj.username, password=attrs['password']
+        )
+        if not user:
+            raise serializers.ValidationError('Invalid credentials.')
+        attrs['user'] = user
         return attrs
 
 
 class TaskSerializer(serializers.ModelSerializer):
     """
-    Serializer for tasks including nested subtasks, assignees, and reviewers.
+    Task representation used for creation and for the dashboard lists
+    (assigned-to-me, reviewing). Assignee and reviewer are written via
+    `assignee_id` / `reviewer_id` and read as nested user summaries.
     """
-    assigned_to_details = ContactSerializer(source='assigned_to', many=True, read_only=True)
-    assigned_to = serializers.PrimaryKeyRelatedField(
-        many=True, queryset=Contact.objects.all(), required=False
-    )
-    subtasks = SubtaskSerializer(many=True, required=False)
-    assignee = UserDetailSerializer(read_only=True)
-    reviewer = UserDetailSerializer(read_only=True)
+    board = serializers.PrimaryKeyRelatedField(queryset=Board.objects.all())
+    assignee = UserSummarySerializer(read_only=True)
+    reviewer = UserSummarySerializer(read_only=True)
     assignee_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(),
-        source='assignee',
-        required=False,
-        allow_null=True
+        queryset=User.objects.all(), source='assignee',
+        write_only=True, required=False, allow_null=True
     )
     reviewer_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(),
-        source='reviewer',
-        required=False,
-        allow_null=True
+        queryset=User.objects.all(), source='reviewer',
+        write_only=True, required=False, allow_null=True
     )
     comments_count = serializers.IntegerField(read_only=True)
-    board = serializers.PrimaryKeyRelatedField(
-        queryset=Board.objects.all(), required=False, allow_null=True
-    )
 
     class Meta:
         model = Task
         fields = [
-            'id', 'board', 'title', 'description', 'due_date', 'priority',
-            'status', 'category', 'assigned_to', 'assigned_to_details',
+            'id', 'board', 'title', 'description', 'status', 'priority',
             'assignee', 'assignee_id', 'reviewer', 'reviewer_id',
-            'comments_count', 'subtasks', 'created_by', 'created_at', 'updated_at'
+            'due_date', 'comments_count'
         ]
-        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
+        read_only_fields = ['id']
 
-    def to_internal_value(self, data):
-        data_copy = data.copy() if hasattr(data, 'copy') else dict(data)
+    def validate(self, attrs):
+        board = attrs.get('board') or self.instance.board
+        for field in ('assignee', 'reviewer'):
+            user = attrs.get(field)
+            if user and not board.is_member_or_owner(user):
+                raise serializers.ValidationError(
+                    {f'{field}_id': 'The user must be a member of the board.'}
+                )
+        return attrs
 
-        if 'board_id' in data_copy and 'board' not in data_copy:
-            data_copy['board'] = data_copy.pop('board_id')
-        elif 'board' in data_copy and isinstance(data_copy['board'], dict) and 'id' in data_copy['board']:
-            data_copy['board'] = data_copy['board']['id']
 
-        if 'assigned_to' in data_copy and data_copy['assigned_to'] is None:
-            data_copy['assigned_to'] = []
+class TaskUpdateSerializer(TaskSerializer):
+    """
+    Serializer for PATCH /api/tasks/{task_id}/. The board of a task cannot
+    be changed, and the response contains neither `board` nor `comments_count`.
+    """
+    board = None
+    comments_count = None
 
-        if 'due_date' in data_copy and data_copy['due_date'] == '':
-            data_copy['due_date'] = None
+    class Meta(TaskSerializer.Meta):
+        fields = [
+            'id', 'title', 'description', 'status', 'priority',
+            'assignee', 'assignee_id', 'reviewer', 'reviewer_id', 'due_date'
+        ]
 
-        if data_copy.get('assignee_id') in ['', 0]:
-            data_copy['assignee_id'] = None
+    def validate(self, attrs):
+        board_value = self.initial_data.get('board')
+        if board_value is not None and str(board_value) != str(self.instance.board_id):
+            raise serializers.ValidationError(
+                {'board': 'Changing the board of a task is not allowed.'}
+            )
+        return super().validate(attrs)
 
-        if 'assignee' in data_copy:
-            val = data_copy.pop('assignee')
-            if isinstance(val, dict):
-                data_copy['assignee_id'] = val.get('id')
-            elif val not in ['', 0]:
-                data_copy['assignee_id'] = val
 
-        if data_copy.get('reviewer_id') in ['', 0]:
-            data_copy['reviewer_id'] = None
+class BoardTaskSerializer(TaskSerializer):
+    """
+    Read-only task representation nested inside the board detail response.
+    """
+    board = None
 
-        if 'reviewer' in data_copy:
-            val = data_copy.pop('reviewer')
-            if isinstance(val, dict):
-                data_copy['reviewer_id'] = val.get('id')
-            elif val not in ['', 0]:
-                data_copy['reviewer_id'] = val
+    class Meta(TaskSerializer.Meta):
+        fields = [
+            'id', 'title', 'description', 'status', 'priority',
+            'assignee', 'reviewer', 'due_date', 'comments_count'
+        ]
 
-        if 'status' in data_copy and isinstance(data_copy['status'], str):
-            data_copy['status'] = data_copy['status'].strip().lower().replace(' ', '_')
 
-        if 'priority' in data_copy and isinstance(data_copy['priority'], str):
-            data_copy['priority'] = data_copy['priority'].strip().lower()
+class BoardSerializer(serializers.ModelSerializer):
+    """
+    Board representation for GET/POST /api/boards/: summary counters and
+    `owner_id`. Members are only accepted as a list of user ids on input.
+    """
+    members = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=User.objects.all(), write_only=True, required=False
+    )
+    owner_id = serializers.IntegerField(read_only=True)
+    member_count = serializers.SerializerMethodField()
+    ticket_count = serializers.SerializerMethodField()
+    tasks_to_do_count = serializers.SerializerMethodField()
+    tasks_high_prio_count = serializers.SerializerMethodField()
 
-        if 'subtasks' in data_copy and isinstance(data_copy['subtasks'], list):
-            normalized_subtasks = []
-            for item in data_copy['subtasks']:
-                if isinstance(item, str):
-                    normalized_subtasks.append({'title': item.strip()})
-                elif isinstance(item, dict):
-                    normalized_subtasks.append(item)
-            data_copy['subtasks'] = normalized_subtasks
+    class Meta:
+        model = Board
+        fields = [
+            'id', 'title', 'members', 'member_count', 'ticket_count',
+            'tasks_to_do_count', 'tasks_high_prio_count', 'owner_id'
+        ]
+        read_only_fields = ['id']
 
-        return super().to_internal_value(data_copy)
+    def get_member_count(self, obj) -> int:
+        return obj.members.count()
 
-    def create(self, validated_data):
-        subtasks_data = validated_data.pop('subtasks', [])
-        assigned_to_data = validated_data.pop('assigned_to', [])
-        task = Task.objects.create(**validated_data)
+    def get_ticket_count(self, obj) -> int:
+        return obj.tasks.count()
 
-        if assigned_to_data:
-            task.assigned_to.set(assigned_to_data)
+    def get_tasks_to_do_count(self, obj) -> int:
+        return obj.tasks.filter(status='to-do').count()
 
-        for subtask_item in subtasks_data:
-            subtask_item.pop('id', None)
-            subtask_item.pop('task', None)
-            Subtask.objects.create(task=task, **subtask_item)
+    def get_tasks_high_prio_count(self, obj) -> int:
+        return obj.tasks.filter(priority='high').count()
 
-        return task
 
-    def update(self, instance, validated_data):
-        subtasks_data = validated_data.pop('subtasks', None)
-        assigned_to_data = validated_data.pop('assigned_to', None)
+class BoardDetailSerializer(serializers.ModelSerializer):
+    """
+    Board representation for GET /api/boards/{board_id}/ including members and tasks.
+    """
+    owner_id = serializers.IntegerField(read_only=True)
+    members = UserSummarySerializer(many=True, read_only=True)
+    tasks = BoardTaskSerializer(many=True, read_only=True)
 
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
+    class Meta:
+        model = Board
+        fields = ['id', 'title', 'owner_id', 'members', 'tasks']
 
-        if assigned_to_data is not None:
-            instance.assigned_to.set(assigned_to_data)
 
-        if subtasks_data is not None:
-            for subtask_item in subtasks_data:
-                subtask_id = subtask_item.pop('id', None)
-                subtask_item.pop('task', None)
-                if subtask_id:
-                    Subtask.objects.filter(id=subtask_id, task=instance).update(**subtask_item)
-                else:
-                    Subtask.objects.create(task=instance, **subtask_item)
+class BoardUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for PATCH /api/boards/{board_id}/. Members are sent as a list of
+    user ids and replace the current member list; the response contains
+    `owner_data` and `members_data`.
+    """
+    members = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=User.objects.all(), write_only=True, required=False
+    )
+    owner_data = UserSummarySerializer(source='owner', read_only=True)
+    members_data = UserSummarySerializer(source='members', many=True, read_only=True)
 
-        return instance
+    class Meta:
+        model = Board
+        fields = ['id', 'title', 'members', 'owner_data', 'members_data']
+        read_only_fields = ['id']
 
 
 class CommentSerializer(serializers.ModelSerializer):
     """
-    Serializer for task comments.
+    Serializer for task comments; the author is exposed as full name.
     """
     author = serializers.CharField(source='author.fullname', read_only=True)
 
     class Meta:
         model = Comment
-        fields = ['id', 'task', 'author', 'content', 'created_at']
-        read_only_fields = ['id', 'task', 'author', 'created_at']
-
-
-class BoardTaskSerializer(TaskSerializer):
-    """
-    Serializer for tasks with frontend-compatible status and priority representations.
-    """
-    def to_representation(self, instance):
-        status_map = {
-            'to_do': 'to-do',
-            'in_progress': 'in-progress',
-            'await_feedback': 'review',
-        }
-        prio_map = {
-            'urgent': 'high',
-        }
-        data = super().to_representation(instance)
-        if data.get('status') in status_map:
-            data['status'] = status_map[data['status']]
-        if data.get('priority') in prio_map:
-            data['priority'] = prio_map[data['priority']]
-        return data
-
-
-class BoardUserSerializer(serializers.ModelSerializer):
-    """
-    Serializer für Benutzerdaten in Board-Darstellungen.
-    """
-    full_name = serializers.CharField(source='fullname', read_only=True)
-
-    class Meta:
-        model = User
-        fields = ['id', 'email', 'full_name']
-
-
-class BoardSerializer(serializers.ModelSerializer):
-    """
-    Serializer für Boards mit Mitgliedern und Eigentümer.
-    """
-    members = serializers.PrimaryKeyRelatedField(
-        many=True, queryset=User.objects.all(), required=False
-    )
-    owner = BoardUserSerializer(read_only=True)
-
-    class Meta:
-        model = Board
-        fields = ['id', 'title', 'members', 'owner']
-        read_only_fields = ['id', 'owner']
-
-    def to_internal_value(self, data):
-        data_copy = data.copy() if hasattr(data, 'copy') else dict(data)
-        if 'members' in data_copy and isinstance(data_copy['members'], list):
-            normalized = []
-            for item in data_copy['members']:
-                if isinstance(item, dict) and 'id' in item:
-                    normalized.append(item['id'])
-                else:
-                    normalized.append(item)
-            data_copy['members'] = normalized
-        return super().to_internal_value(data_copy)
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data['members'] = BoardUserSerializer(instance.members.all(), many=True).data
-        return data
-
-
-class RegistrationSerializer(serializers.ModelSerializer):
-    """
-    Serializer for user registration with password validation and optional full name.
-    """
-    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
-    repeated_password = serializers.CharField(write_only=True, required=True)
-    fullname = serializers.CharField(write_only=True, required=False, allow_blank=True)
-
-    class Meta:
-        model = User
-        fields = [
-            'username', 'email', 'password', 'repeated_password',
-            'first_name', 'last_name', 'fullname', 'color'
-        ]
-        extra_kwargs = {
-            'username': {'required': False},
-            'first_name': {'required': False, 'allow_blank': True},
-            'last_name': {'required': False, 'allow_blank': True},
-            'color': {'required': False},
-        }
-
-    def validate(self, attrs):
-        if attrs['password'] != attrs['repeated_password']:
-            raise serializers.ValidationError({"password": "Passwords do not match."})
-
-        if not attrs.get('username') and attrs.get('email'):
-            base_username = attrs['email'].split('@')[0]
-            username = base_username
-            counter = 1
-            while User.objects.filter(username=username).exists():
-                username = f"{base_username}{counter}"
-                counter += 1
-            attrs['username'] = username
-
-        fullname = attrs.get('fullname')
-        if fullname and not attrs.get('first_name'):
-            parts = fullname.strip().split(' ', 1)
-            attrs['first_name'] = parts[0]
-            attrs['last_name'] = parts[1] if len(parts) > 1 else ''
-
-        return attrs
-
-    def create(self, validated_data):
-        validated_data.pop('repeated_password')
-        validated_data.pop('fullname', None)
-        user = User.objects.create_user(
-            username=validated_data['username'],
-            email=validated_data['email'],
-            password=validated_data['password'],
-            first_name=validated_data.get('first_name', ''),
-            last_name=validated_data.get('last_name', ''),
-            color=validated_data.get('color', '#FF7A00')
-        )
-        return user
-
-
-class LoginSerializer(serializers.Serializer):
-    """
-    Serializer for user login via username or email.
-    """
-    username = serializers.CharField(required=False, allow_blank=True)
-    email = serializers.EmailField(required=False, allow_blank=True)
-    password = serializers.CharField(write_only=True, required=True)
-
-    def validate(self, attrs):
-        username = attrs.get('username', '').strip() if attrs.get('username') else None
-        email = attrs.get('email', '').strip() if attrs.get('email') else None
-        password = attrs.get('password')
-
-        if not username and not email:
-            raise serializers.ValidationError("Please provide a username or an email address.")
-
-        if email and not username:
-            try:
-                user_obj = User.objects.get(email__iexact=email)
-                username = user_obj.username
-            except User.DoesNotExist:
-                raise serializers.ValidationError("Invalid credentials.")
-
-        user = authenticate(username=username, password=password)
-
-        if not user:
-            raise serializers.ValidationError("Invalid credentials.")
-        if not user.is_active:
-            raise serializers.ValidationError("User account is disabled.")
-
-        attrs['user'] = user
-        return attrs
+        fields = ['id', 'created_at', 'author', 'content']
+        read_only_fields = ['id', 'created_at']

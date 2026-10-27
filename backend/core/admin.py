@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Contact, Task, Board, Comment, Subtask
+from .models import CustomUser, Task, Board, Comment
 
 
 @admin.register(CustomUser)
@@ -13,12 +13,6 @@ class CustomUserAdmin(UserAdmin):
     )
 
 
-@admin.register(Contact)
-class ContactAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'email', 'phone', 'color', 'created_at')
-    search_fields = ('name', 'email', 'phone')
-
-
 @admin.register(Board)
 class BoardAdmin(admin.ModelAdmin):
     list_display = ('id', 'title', 'owner', 'created_at')
@@ -29,10 +23,10 @@ class BoardAdmin(admin.ModelAdmin):
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'title', 'board', 'status', 'priority', 'category',
+        'id', 'title', 'board', 'status', 'priority',
         'due_date', 'created_by', 'created_at'
     )
-    list_filter = ('status', 'priority', 'category')
+    list_filter = ('status', 'priority')
     search_fields = ('title', 'description')
 
 
@@ -40,9 +34,3 @@ class TaskAdmin(admin.ModelAdmin):
 class CommentAdmin(admin.ModelAdmin):
     list_display = ('id', 'task', 'author', 'created_at')
     search_fields = ('content',)
-
-
-@admin.register(Subtask)
-class SubtaskAdmin(admin.ModelAdmin):
-    list_display = ('id', 'task', 'title', 'is_completed')
-    list_filter = ('is_completed',)

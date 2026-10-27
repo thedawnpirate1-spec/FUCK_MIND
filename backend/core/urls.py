@@ -2,56 +2,42 @@ from django.urls import path
 from .views import (
     RegistrationView,
     LoginView,
-    LogoutView,
-    UserProfileView,
     EmailCheckView,
     BoardListCreateView,
     BoardDetailView,
     AssignedTasksView,
     ReviewingTasksView,
+    TaskCreateView,
+    TaskDetailView,
     TaskCommentListCreateView,
     TaskCommentDetailView,
-    ContactListCreateView,
-    ContactDetailView,
-    TaskListCreateView,
-    TaskDetailView,
-    SubtaskListCreateView,
-    SubtaskDetailView
 )
 
 urlpatterns = [
     # Authentication & Users
-    path('auth/register/', RegistrationView.as_view(), name='register'),
-    path('registration/', RegistrationView.as_view(), name='registration-frontend'),
-    path('auth/login/', LoginView.as_view(), name='login'),
-    path('login/', LoginView.as_view(), name='login-frontend'),
-    path('auth/logout/', LogoutView.as_view(), name='logout'),
-    path('auth/user/', UserProfileView.as_view(), name='user-profile'),
+    path('registration/', RegistrationView.as_view(), name='registration'),
+    path('login/', LoginView.as_view(), name='login'),
     path('email-check/', EmailCheckView.as_view(), name='email-check'),
 
     # Boards
     path('boards/', BoardListCreateView.as_view(), name='board-list-create'),
-    path('boards/<int:pk>/', BoardDetailView.as_view(), name='board-detail'),
+    path('boards/<int:board_id>/', BoardDetailView.as_view(), name='board-detail'),
 
-    # Tasks, Dashboard & Comments
+    # Tasks
     path('tasks/assigned-to-me/', AssignedTasksView.as_view(), name='tasks-assigned-to-me'),
     path('tasks/reviewing/', ReviewingTasksView.as_view(), name='tasks-reviewing'),
+    path('tasks/', TaskCreateView.as_view(), name='task-create'),
+    path('tasks/<int:task_id>/', TaskDetailView.as_view(), name='task-detail'),
+
+    # Comments
     path(
         'tasks/<int:task_id>/comments/',
         TaskCommentListCreateView.as_view(),
         name='task-comments'
     ),
     path(
-        'tasks/<int:task_id>/comments/<int:pk>/',
+        'tasks/<int:task_id>/comments/<int:comment_id>/',
         TaskCommentDetailView.as_view(),
         name='task-comment-detail'
     ),
-
-    # Contacts, Tasks & Subtasks
-    path('contacts/', ContactListCreateView.as_view(), name='contact-list-create'),
-    path('contacts/<int:pk>/', ContactDetailView.as_view(), name='contact-detail'),
-    path('tasks/', TaskListCreateView.as_view(), name='task-list-create'),
-    path('tasks/<int:pk>/', TaskDetailView.as_view(), name='task-detail'),
-    path('subtasks/', SubtaskListCreateView.as_view(), name='subtask-list-create'),
-    path('subtasks/<int:pk>/', SubtaskDetailView.as_view(), name='subtask-detail'),
 ]
