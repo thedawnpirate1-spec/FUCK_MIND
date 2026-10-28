@@ -1,0 +1,31 @@
+$kind: http-request
+description: PATCH /api/boards/{board_id}/ - members not listed are removed.
+url: "{{base_url}}/api/boards/{{board_id}}/"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Postman Board (renamed)",
+      "members": [
+        {{user_a_id}},
+        {{user_b_id}}
+      ]
+    }
+auth:
+  type: apikey
+  credentials:
+    key: Authorization
+    value: "{{auth_secret_068f}}"
+    in: header
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200', () => pm.response.to.have.status(200));
+      const json = pm.response.json();
+      pm.test('Response has exactly the documented fields', () => pm.expect(Object.keys(json).sort()).to.have.members(['id', 'title', 'owner_data', 'members_data'].sort()));
+      pm.test('owner_data and members_data are returned', () => { pm.expect(Object.keys(json.owner_data).sort()).to.have.members(['id', 'email', 'fullname'].sort()); pm.expect(json.members_data.length).to.eql(2); pm.expect(json.title).to.eql('Postman Board (renamed)'); });
+    language: text/javascript
+order: 8000

@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{base_url}}/api/boards/"
+method: GET
+auth:
+  type: apikey
+  credentials:
+    key: Authorization
+    value: "{{auth_secret_068f}}"
+    in: header
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200', () => pm.response.to.have.status(200));
+      const json = pm.response.json();
+      pm.test('contains the created board with documented fields', () => { const board = json.find(b => b.id === Number(pm.collectionVariables.get('board_id'))); pm.expect(board).to.be.an('object'); pm.expect(Object.keys(board).sort()).to.have.members(['id', 'title', 'member_count', 'ticket_count', 'tasks_to_do_count', 'tasks_high_prio_count', 'owner_id'].sort()); });
+    language: text/javascript
+order: 4000

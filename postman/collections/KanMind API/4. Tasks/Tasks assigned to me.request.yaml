@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{base_url}}/api/tasks/assigned-to-me/"
+method: GET
+auth:
+  type: apikey
+  credentials:
+    key: Authorization
+    value: "{{auth_secret_08pz}}"
+    in: header
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200', () => pm.response.to.have.status(200));
+      const json = pm.response.json();
+      pm.test('contains the task with documented fields', () => { const t = json.find(x => x.id === Number(pm.collectionVariables.get('task_id'))); pm.expect(t).to.be.an('object'); pm.expect(Object.keys(t).sort()).to.have.members(['id', 'title', 'description', 'status', 'priority', 'assignee', 'reviewer', 'due_date', 'comments_count', 'board'].sort()); });
+    language: text/javascript
+order: 9000

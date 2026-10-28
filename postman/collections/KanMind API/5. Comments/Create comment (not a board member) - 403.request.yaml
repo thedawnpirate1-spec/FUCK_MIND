@@ -1,0 +1,23 @@
+$kind: http-request
+name: Create comment (not a board member) -> 403
+url: "{{base_url}}/api/tasks/{{task_id}}/comments/"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "content": "x"
+    }
+auth:
+  type: apikey
+  credentials:
+    key: Authorization
+    value: "{{auth_secret_0uyf}}"
+    in: header
+scripts:
+  - type: afterResponse
+    code: pm.test('Status code is 403', () => pm.response.to.have.status(403));
+    language: text/javascript
+order: 3000

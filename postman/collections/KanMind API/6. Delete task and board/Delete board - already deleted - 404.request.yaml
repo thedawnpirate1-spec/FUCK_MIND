@@ -1,0 +1,15 @@
+$kind: http-request
+name: Delete board - already deleted -> 404
+url: "{{base_url}}/api/boards/{{board_id}}/"
+method: DELETE
+auth:
+  type: apikey
+  credentials:
+    key: Authorization
+    value: "{{auth_secret_068f}}"
+    in: header
+scripts:
+  - type: afterResponse
+    code: pm.test('Status code is 404', () => pm.response.to.have.status(404));
+    language: text/javascript
+order: 6000

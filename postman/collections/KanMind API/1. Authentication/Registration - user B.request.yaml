@@ -1,0 +1,31 @@
+$kind: http-request
+description: POST /api/registration/ - no permissions required.
+url: "{{base_url}}/api/registration/"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fullname": "Postman User B",
+      "email": "{{email_b}}",
+      "password": "SafePassword123!",
+      "repeated_password": "SafePassword123!"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: beforeRequest
+    code: pm.collectionVariables.set('email_b', 'postman_b_' + Date.now() + '@example.com');
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 201', () => pm.response.to.have.status(201));
+      const json = pm.response.json();
+      pm.test('Response has exactly the documented fields', () => pm.expect(Object.keys(json).sort()).to.have.members(['token', 'fullname', 'email', 'user_id'].sort()));
+      pm.collectionVariables.set('token_b', json.token);
+      pm.collectionVariables.set('user_b_id', json.user_id);
+      pm.test('fullname and email are returned', () => { pm.expect(json.fullname).to.eql('Postman User B'); pm.expect(json.email).to.eql(pm.collectionVariables.get('email_b')); });
+    language: text/javascript
+order: 2000

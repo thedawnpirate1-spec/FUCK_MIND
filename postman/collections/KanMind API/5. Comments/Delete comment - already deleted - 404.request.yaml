@@ -1,0 +1,15 @@
+$kind: http-request
+name: Delete comment - already deleted -> 404
+url: "{{base_url}}/api/tasks/{{task_id}}/comments/{{comment_id}}/"
+method: DELETE
+auth:
+  type: apikey
+  credentials:
+    key: Authorization
+    value: "{{auth_secret_08pz}}"
+    in: header
+scripts:
+  - type: afterResponse
+    code: pm.test('Status code is 404', () => pm.response.to.have.status(404));
+    language: text/javascript
+order: 9000

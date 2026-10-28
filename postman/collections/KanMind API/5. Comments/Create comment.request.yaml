@@ -1,0 +1,27 @@
+$kind: http-request
+url: "{{base_url}}/api/tasks/{{task_id}}/comments/"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "content": "Das ist ein neuer Kommentar zur Task."
+    }
+auth:
+  type: apikey
+  credentials:
+    key: Authorization
+    value: "{{auth_secret_08pz}}"
+    in: header
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 201', () => pm.response.to.have.status(201));
+      const json = pm.response.json();
+      pm.test('Response has exactly the documented fields', () => pm.expect(Object.keys(json).sort()).to.have.members(['id', 'created_at', 'author', 'content'].sort()));
+      pm.collectionVariables.set('comment_id', json.id);
+      pm.test('author is the full name of user B and content matches', () => { pm.expect(json.author).to.eql('Postman User B'); pm.expect(json.content).to.eql('Das ist ein neuer Kommentar zur Task.'); });
+    language: text/javascript
+order: 1000

@@ -1,0 +1,13 @@
+# Use this workspace to collaborate
+workspace:
+  id: 0246ac94-049d-40a5-8c2e-e313ac5fb2bd
+
+cloudResources:
+  collections:
+    ../postman/collections/KanMind API: b410d0eb-6d0e-460b-bf2a-803a078612a6
+
+# All resources in the `postman/` folder are automatically registered in Local View.
+# Point to additional files outside the `postman/` folder to register them individually. Example:
+#localResources:
+#  collections:
+#    - ../tests/E2E Test Collection/

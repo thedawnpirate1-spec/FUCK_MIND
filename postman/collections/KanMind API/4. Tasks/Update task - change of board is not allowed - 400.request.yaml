@@ -1,0 +1,23 @@
+$kind: http-request
+name: Update task - change of board is not allowed -> 400
+url: "{{base_url}}/api/tasks/{{task_id}}/"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "board": 999999
+    }
+auth:
+  type: apikey
+  credentials:
+    key: Authorization
+    value: "{{auth_secret_068f}}"
+    in: header
+scripts:
+  - type: afterResponse
+    code: pm.test('Status code is 400', () => pm.response.to.have.status(400));
+    language: text/javascript
+order: 12000

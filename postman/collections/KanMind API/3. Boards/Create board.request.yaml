@@ -1,0 +1,32 @@
+$kind: http-request
+description: POST /api/boards/ - the requesting user becomes the owner.
+url: "{{base_url}}/api/boards/"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Postman Board",
+      "members": [
+        {{user_a_id}},
+        {{user_b_id}}
+      ]
+    }
+auth:
+  type: apikey
+  credentials:
+    key: Authorization
+    value: "{{auth_secret_068f}}"
+    in: header
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 201', () => pm.response.to.have.status(201));
+      const json = pm.response.json();
+      pm.test('Response has exactly the documented fields', () => pm.expect(Object.keys(json).sort()).to.have.members(['id', 'title', 'member_count', 'ticket_count', 'tasks_to_do_count', 'tasks_high_prio_count', 'owner_id'].sort()));
+      pm.collectionVariables.set('board_id', json.id);
+      pm.test('counters and owner_id are correct', () => { pm.expect(json.member_count).to.eql(2); pm.expect(json.ticket_count).to.eql(0); pm.expect(json.tasks_to_do_count).to.eql(0); pm.expect(json.tasks_high_prio_count).to.eql(0); pm.expect(json.owner_id).to.eql(Number(pm.collectionVariables.get('user_a_id'))); });
+    language: text/javascript
+order: 1000

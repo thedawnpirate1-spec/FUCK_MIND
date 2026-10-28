@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{base_url}}/api/boards/{{board_id}}/"
+method: GET
+auth:
+  type: apikey
+  credentials:
+    key: Authorization
+    value: "{{auth_secret_068f}}"
+    in: header
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200', () => pm.response.to.have.status(200));
+      const json = pm.response.json();
+      pm.test('tasks have the documented fields', () => { pm.expect(json.tasks.length).to.eql(1); pm.expect(Object.keys(json.tasks[0]).sort()).to.have.members(['id', 'title', 'description', 'status', 'priority', 'assignee', 'reviewer', 'due_date', 'comments_count'].sort()); });
+    language: text/javascript
+order: 7000

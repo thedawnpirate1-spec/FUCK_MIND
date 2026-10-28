@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{base_url}}/api/boards/"
+method: GET
+auth:
+  type: apikey
+  credentials:
+    key: Authorization
+    value: "{{auth_secret_068f}}"
+    in: header
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200', () => pm.response.to.have.status(200));
+      const json = pm.response.json();
+      pm.test('ticket_count, to-do and high-prio counters are 1', () => { const board = json.find(b => b.id === Number(pm.collectionVariables.get('board_id'))); pm.expect(board.ticket_count).to.eql(1); pm.expect(board.tasks_to_do_count).to.eql(1); pm.expect(board.tasks_high_prio_count).to.eql(1); });
+    language: text/javascript
+order: 8000

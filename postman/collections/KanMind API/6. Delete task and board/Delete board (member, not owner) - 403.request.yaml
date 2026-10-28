@@ -1,0 +1,15 @@
+$kind: http-request
+name: Delete board (member, not owner) -> 403
+url: "{{base_url}}/api/boards/{{board_id}}/"
+method: DELETE
+auth:
+  type: apikey
+  credentials:
+    key: Authorization
+    value: "{{auth_secret_08pz}}"
+    in: header
+scripts:
+  - type: afterResponse
+    code: pm.test('Status code is 403', () => pm.response.to.have.status(403));
+    language: text/javascript
+order: 4000

@@ -1,0 +1,27 @@
+$kind: http-request
+url: "{{base_url}}/api/tasks/{{task_id}}/"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "status": "in-progress",
+      "priority": "medium"
+    }
+auth:
+  type: apikey
+  credentials:
+    key: Authorization
+    value: "{{auth_secret_068f}}"
+    in: header
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200', () => pm.response.to.have.status(200));
+      const json = pm.response.json();
+      pm.test('Response has exactly the documented fields', () => pm.expect(Object.keys(json).sort()).to.have.members(['id', 'title', 'description', 'status', 'priority', 'assignee', 'reviewer', 'due_date'].sort()));
+      pm.test('status and priority were updated', () => { pm.expect(json.status).to.eql('in-progress'); pm.expect(json.priority).to.eql('medium'); });
+    language: text/javascript
+order: 11000

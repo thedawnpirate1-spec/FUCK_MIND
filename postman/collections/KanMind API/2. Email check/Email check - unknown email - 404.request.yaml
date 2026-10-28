@@ -1,0 +1,17 @@
+$kind: http-request
+name: Email check - unknown email -> 404
+url: "{{base_url}}/api/email-check/?email=nobody-here@example.com"
+method: GET
+queryParams:
+  email: nobody-here@example.com
+auth:
+  type: apikey
+  credentials:
+    key: Authorization
+    value: "{{auth_secret_068f}}"
+    in: header
+scripts:
+  - type: afterResponse
+    code: pm.test('Status code is 404', () => pm.response.to.have.status(404));
+    language: text/javascript
+order: 2000

@@ -1,0 +1,26 @@
+$kind: http-request
+name: Create task - unknown board -> 404
+url: "{{base_url}}/api/tasks/"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "board": 999999,
+      "title": "x",
+      "status": "to-do",
+      "priority": "low"
+    }
+auth:
+  type: apikey
+  credentials:
+    key: Authorization
+    value: "{{auth_secret_08pz}}"
+    in: header
+scripts:
+  - type: afterResponse
+    code: pm.test('Status code is 404', () => pm.response.to.have.status(404));
+    language: text/javascript
+order: 4000

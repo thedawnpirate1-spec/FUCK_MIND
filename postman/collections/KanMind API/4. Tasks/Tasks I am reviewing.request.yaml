@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{base_url}}/api/tasks/reviewing/"
+method: GET
+auth:
+  type: apikey
+  credentials:
+    key: Authorization
+    value: "{{auth_secret_068f}}"
+    in: header
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200', () => pm.response.to.have.status(200));
+      const json = pm.response.json();
+      pm.test('contains the task', () => { pm.expect(json.map(t => t.id)).to.include(Number(pm.collectionVariables.get('task_id'))); });
+    language: text/javascript
+order: 10000

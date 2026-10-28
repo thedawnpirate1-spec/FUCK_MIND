@@ -1,0 +1,23 @@
+$kind: http-request
+name: Update task - unknown id -> 404
+url: "{{base_url}}/api/tasks/999999/"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "status": "done"
+    }
+auth:
+  type: apikey
+  credentials:
+    key: Authorization
+    value: "{{auth_secret_068f}}"
+    in: header
+scripts:
+  - type: afterResponse
+    code: pm.test('Status code is 404', () => pm.response.to.have.status(404));
+    language: text/javascript
+order: 14000

@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{base_url}}/api/boards/{{board_id}}/"
+method: GET
+auth:
+  type: apikey
+  credentials:
+    key: Authorization
+    value: "{{auth_secret_08pz}}"
+    in: header
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200', () => pm.response.to.have.status(200));
+      const json = pm.response.json();
+      pm.test('Response has exactly the documented fields', () => pm.expect(Object.keys(json).sort()).to.have.members(['id', 'title', 'owner_id', 'members', 'tasks'].sort()));
+      pm.test('members have id, email and fullname', () => { pm.expect(json.members.length).to.eql(2); json.members.forEach(m => pm.expect(Object.keys(m).sort()).to.have.members(['id', 'email', 'fullname'].sort())); });
+      pm.test('owner_id is user A', () => { pm.expect(json.owner_id).to.eql(Number(pm.collectionVariables.get('user_a_id'))); });
+    language: text/javascript
+order: 5000

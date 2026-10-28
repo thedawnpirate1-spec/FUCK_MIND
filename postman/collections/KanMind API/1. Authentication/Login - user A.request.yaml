@@ -1,0 +1,25 @@
+$kind: http-request
+description: POST /api/login/ - no permissions required.
+url: "{{base_url}}/api/login/"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{email_a}}",
+      "password": "SafePassword123!"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200', () => pm.response.to.have.status(200));
+      const json = pm.response.json();
+      pm.test('Response has exactly the documented fields', () => pm.expect(Object.keys(json).sort()).to.have.members(['token', 'fullname', 'email', 'user_id'].sort()));
+      pm.collectionVariables.set('token_a', json.token);
+      pm.test('user_id matches the registered user', () => { pm.expect(json.user_id).to.eql(Number(pm.collectionVariables.get('user_a_id'))); });
+    language: text/javascript
+order: 6000

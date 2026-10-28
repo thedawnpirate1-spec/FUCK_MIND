@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{base_url}}/api/tasks/{{task_id}}/comments/"
+method: GET
+auth:
+  type: apikey
+  credentials:
+    key: Authorization
+    value: "{{auth_secret_068f}}"
+    in: header
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200', () => pm.response.to.have.status(200));
+      const json = pm.response.json();
+      pm.test('one comment with documented fields', () => { pm.expect(json.length).to.eql(1); pm.expect(Object.keys(json[0]).sort()).to.have.members(['id', 'created_at', 'author', 'content'].sort()); });
+    language: text/javascript
+order: 5000

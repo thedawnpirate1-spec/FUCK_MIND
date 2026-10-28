@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{base_url}}/api/email-check/?email={{email_b}}"
+method: GET
+queryParams:
+  email: "{{email_b}}"
+auth:
+  type: apikey
+  credentials:
+    key: Authorization
+    value: "{{auth_secret_068f}}"
+    in: header
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200', () => pm.response.to.have.status(200));
+      const json = pm.response.json();
+      pm.test('Response has exactly the documented fields', () => pm.expect(Object.keys(json).sort()).to.have.members(['id', 'email', 'fullname'].sort()));
+      pm.test('returns user B', () => { pm.expect(json.id).to.eql(Number(pm.collectionVariables.get('user_b_id'))); });
+    language: text/javascript
+order: 1000
